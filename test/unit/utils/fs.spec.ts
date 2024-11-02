@@ -25,7 +25,7 @@ import {
 	read,
 	getFiles,
 } from '../../../src/utils/fs';
-import { configV3 } from '../fixtures/config';
+import { oldConfig } from '../fixtures/config';
 
 const testDir = join(__dirname, 'test/data');
 const tarFilePath = join(__dirname, '../../..', 'test/unit/fixtures/blockchain.db.tar.gz');
@@ -59,7 +59,7 @@ describe('Test extractTarBall method', () => {
 describe('Test rmdir method', () => {
 	it('should return false when called with a directory path', async () => {
 		expect(await exists(testDir)).toBe(true);
-		const response = await rmdir(testDir);
+		const response = await rmdir(testDir, { recursive: true });
 		expect(response).toBe(true);
 		expect(await exists(testDir)).toBe(false);
 	});
@@ -87,7 +87,7 @@ describe('Test write method', () => {
 		const filePath = `${testDir}/config.json`;
 		expect(await exists(filePath)).toBe(false);
 
-		await write(filePath, JSON.stringify(configV3, null, '\t'));
+		await write(filePath, JSON.stringify(oldConfig, null, '\t'));
 
 		expect(await exists(filePath)).toBe(true);
 	});
@@ -103,7 +103,7 @@ describe('Test read method', () => {
 		expect(await exists(filePath)).toBe(true);
 
 		const result = await read(filePath);
-		expect(result).toBe(JSON.stringify(configV3, null, '\t'));
+		expect(result).toBe(JSON.stringify(oldConfig, null, '\t'));
 	});
 
 	it('should throw when called with empty string', async () => {
@@ -157,7 +157,7 @@ describe('Test getFiles method', () => {
 				'forgingStatus.json',
 				'genesis_assets.ts',
 				'genesis_block.json',
-				'lisk-core',
+				'swaptoshi-core',
 				'sub-directory',
 			]),
 		);

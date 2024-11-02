@@ -14,19 +14,19 @@
  */
 import { genesisInteroperabilitySchema } from 'klayr-framework';
 import { StateDB } from '@liskhq/lisk-db';
-import { ownChainAccountSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/own_chain_account';
-import { MAX_UINT32 } from 'lisk-framework/dist-node/modules/interoperability/constants';
-import { utils } from '@liskhq/lisk-cryptography';
-import { chainDataSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/chain_account';
-import { channelSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/channel_data';
-import { chainValidatorsSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/chain_validators';
-import { terminatedStateSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/terminated_state';
-import { terminatedOutboxSchema } from 'lisk-framework/dist-node/modules/interoperability/stores/terminated_outbox';
+import { ownChainAccountSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/own_chain_account';
+import { MAX_UINT32 } from 'klayr-framework/dist-node/modules/interoperability/constants';
+import { utils } from '@klayr/cryptography';
+import { chainDataSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/chain_account';
+import { channelSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/channel_data';
+import { chainValidatorsSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/chain_validators';
+import { terminatedStateSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/terminated_state';
+import { terminatedOutboxSchema } from 'klayr-framework/dist-node/modules/interoperability/stores/terminated_outbox';
 import { GenesisAssetEntry, GenesisInteroperability } from '../types';
 import { getStateStore } from '../utils/store';
 import {
 	MODULE_NAME_INTEROPERABILITY,
-	KLAYR_CHAIN_NAME_MAINCHAIN,
+	SWAPTOSHI_CHAIN_NAME_MAINCHAIN,
 	DB_PREFIX_INTEROPERABILITY_OWN_CHAIN_ACCOUNT_STORE,
 	DB_PREFIX_INTEROPERABILITY_CHAIN_ACCOUNT_STORE,
 	DB_PREFIX_INTEROPERABILITY_CHANNEL_DATA_STORE,
@@ -119,7 +119,7 @@ export const getInteropModuleEntry = async (db: StateDB): Promise<GenesisAssetEn
 	const chainInfos = await getChainAccounts(db);
 	const ownAccount = await getOwnChainAccount(db);
 	const interopObj = ({
-		ownChainName: KLAYR_CHAIN_NAME_MAINCHAIN,
+		ownChainName: SWAPTOSHI_CHAIN_NAME_MAINCHAIN,
 		ownChainNonce: ownAccount.nonce,
 		chainInfos,
 		terminatedStateAccounts: await getTerminatedStateAccounts(db),

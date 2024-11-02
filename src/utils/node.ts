@@ -18,7 +18,7 @@ import { homedir } from 'os';
 import { Command } from '@oclif/command';
 import { renameSync } from 'fs-extra';
 
-import { PartialApplicationConfig } from 'lisk-framework';
+import { PartialApplicationConfig } from 'klayr-framework';
 
 import { execAsync } from './process';
 import { copyDir, exists } from './fs';
@@ -31,12 +31,12 @@ import {
 	DEFAULT_PORT_RPC,
 	ERROR_CODE,
 	LEGACY_DB_PATH,
-	LISK_V4_BACKUP_DATA_DIR,
+	SWAPTOSHI_BACKUP_DATA_DIR,
 	DEFAULT_DATA_DIR,
 } from '../constants';
 import { MigratorException } from './exception';
 
-const INSTALL_KLAYR_CORE_COMMAND = 'npm i -g klayr-core';
+const INSTALL_SWAPTOSHI_CORE_COMMAND = 'npm i -g swaptoshi-core';
 const INSTALL_PM2_COMMAND = 'npm i -g pm2';
 const PM2_FILE_NAME = 'pm2.migrator.config.json';
 
@@ -47,17 +47,18 @@ const REGEX = {
 	OPTION_OR_VALUE: /=<(option|value)>$/,
 };
 
-let klayrCoreStartCommand: string;
+let swaptoshiCoreStartCommand: string;
 
-export const getKlayrCoreStartCommand = (): string => klayrCoreStartCommand;
+export const getSwaptoshiCoreStartCommand = (): string => swaptoshiCoreStartCommand;
 
-export const installKlayrCore = async (): Promise<string> => execAsync(INSTALL_KLAYR_CORE_COMMAND);
+export const installSwaptoshiCore = async (): Promise<string> =>
+	execAsync(INSTALL_SWAPTOSHI_CORE_COMMAND);
 
 export const installPM2 = async (): Promise<string> => execAsync(INSTALL_PM2_COMMAND);
 
-export const isLiskCoreV4Running = async (liskCorePath: string): Promise<boolean> => {
+export const isSwaptoshiCoreRunning = async (swaptoshiCorePath: string): Promise<boolean> => {
 	try {
-		const client = await getAPIClient(liskCorePath, true);
+		const client = await getAPIClient(swaptoshiCorePath, true);
 		const nodeInfo = await client.node.getNodeInfo();
 		return !!nodeInfo;
 	} catch (_) {
@@ -65,18 +66,18 @@ export const isLiskCoreV4Running = async (liskCorePath: string): Promise<boolean
 	}
 };
 
-const backupLegacyDataDir = async (_this: Command, liskCoreV4DataPath: string) => {
+const backupLegacyDataDir = async (_this: Command, swaptoshiCoreDataPath: string) => {
 	try {
-		if (!liskCoreV4DataPath.includes('.lisk/lisk-core')) {
-			fs.mkdirSync(`${homedir()}/.lisk`, { recursive: true });
+		if (!swaptoshiCoreDataPath.includes('.klayr/swaptoshi-core')) {
+			fs.mkdirSync(`${homedir()}/.klayr`, { recursive: true });
 		}
 
-		_this.log(`Backing Lisk Core v4 data directory at ${liskCoreV4DataPath}`);
-		renameSync(liskCoreV4DataPath, LISK_V4_BACKUP_DATA_DIR);
-		_this.log(`Backed Lisk Core v4 data directory to: ${LISK_V4_BACKUP_DATA_DIR}`);
+		_this.log(`Backing Swaptoshi Core data directory at ${swaptoshiCoreDataPath}`);
+		renameSync(swaptoshiCoreDataPath, SWAPTOSHI_BACKUP_DATA_DIR);
+		_this.log(`Backed Swaptoshi Core data directory to: ${SWAPTOSHI_BACKUP_DATA_DIR}`);
 	} catch (err) {
 		throw new MigratorException(
-			`Unable to backup Lisk Core v4 data directory due to: ${(err as Error).message}`,
+			`Unable to backup Swaptoshi Core data directory due to: ${(err as Error).message}`,
 			ERROR_CODE.BACKUP_LEGACY_DATA_DIR,
 		);
 	}
@@ -84,12 +85,12 @@ const backupLegacyDataDir = async (_this: Command, liskCoreV4DataPath: string) =
 
 const copyLegacyDB = async (_this: Command) => {
 	try {
-		_this.log(`Copying the Lisk Core v4.x snapshot to legacy.db at ${LEGACY_DB_PATH}`);
+		_this.log(`Copying the Swaptoshi Core snapshot to legacy.db at ${LEGACY_DB_PATH}`);
 		await copyDir(
-			path.resolve(LISK_V4_BACKUP_DATA_DIR, DEFAULT_DATA_DIR),
+			path.resolve(SWAPTOSHI_BACKUP_DATA_DIR, DEFAULT_DATA_DIR),
 			resolveAbsolutePath(LEGACY_DB_PATH),
 		);
-		_this.log(`Legacy database for Klayr Core v4 has been created at ${LEGACY_DB_PATH}`);
+		_this.log(`Legacy database for Swaptoshi Core has been created at ${LEGACY_DB_PATH}`);
 	} catch (err) {
 		throw new MigratorException(
 			`Unable to copy ${path.basename(LEGACY_DB_PATH)} due to: ${(err as Error).message}`,
@@ -141,35 +142,35 @@ export const validateStartCommandFlags = async (
 	}
 };
 
-const resolveKlayrCoreStartCommand = async (
+const resolveSwaptoshiCoreStartCommand = async (
 	_this: Command,
 	network: string,
 	configPath: string,
 ) => {
-	const baseStartCommand = `klayr-core start --network ${network}`;
+	const baseStartCommand = `swaptoshi-core start --network ${network}`;
 	const defaultStartCommand = `${baseStartCommand} --config ${configPath}`;
 
 	const isUserConfirmed = await cli.confirm(
-		`Default start command: ${defaultStartCommand}\nWould you like to customize the Klayr Core v4 start command? [yes/no]`,
+		`Default start command: ${defaultStartCommand}\nWould you like to customize the Swaptoshi Core start command? [yes/no]`,
 	);
 
 	if (!isUserConfirmed) {
-		klayrCoreStartCommand = defaultStartCommand;
+		swaptoshiCoreStartCommand = defaultStartCommand;
 		return defaultStartCommand;
 	}
 
 	// Let user customize the start command
 	let customStartCommand = baseStartCommand;
 
-	_this.log('Customizing Klayr Core start command');
+	_this.log('Customizing Swaptoshi Core start command');
 	_this.log(
 		`Kindly do not forget to include '--config ${configPath}' in your custom start command, if you still want to use this config.`,
 	);
 	let userInput = await cli.prompt(
-		"Please provide the Klayr Core start command flags (e.g. --api-ws), except the '--network (-n)' flag:",
+		"Please provide the Swaptoshi Core start command flags (e.g. --api-ws), except the '--network (-n)' flag:",
 	);
 
-	const command = "klayr-core start --help | grep -- '^\\s\\+-' | cut -d ' ' -f 3,4";
+	const command = "swaptoshi-core start --help | grep -- '^\\s\\+-' | cut -d ' ' -f 3,4";
 	const allowedFlags = await execAsync(command);
 	const allowedFlagsArray = allowedFlags.split(/\n+/).filter(e => !!e);
 
@@ -186,22 +187,22 @@ const resolveKlayrCoreStartCommand = async (
 
 		if (numTriesLeft >= 0) {
 			userInput = await cli.prompt(
-				"Invalid flags passed. Please provide the Klayr Core start command flags (e.g. --api-ws), except the '--network (-n)' flag again:",
+				"Invalid flags passed. Please provide the Swaptoshi Core start command flags (e.g. --api-ws), except the '--network (-n)' flag again:",
 			);
 		} else {
 			throw new Error(
-				'Invalid Klayr Core start command flags provided. Cannot proceed with Klayr Core v4 auto-start. Please continue manually. Exiting!!!',
+				'Invalid Swaptoshi Core start command flags provided. Cannot proceed with Swaptoshi Core auto-start. Please continue manually. Exiting!!!',
 			);
 		}
 	}
 
-	klayrCoreStartCommand = customStartCommand;
+	swaptoshiCoreStartCommand = customStartCommand;
 	return customStartCommand;
 };
 
-export const startKlayrCore = async (
+export const startSwaptoshiCore = async (
 	_this: Command,
-	liskCoreV4DataPath: string,
+	swaptoshiCoreDataPath: string,
 	_config: PartialApplicationConfig,
 	network: string,
 	outputDir: string,
@@ -217,19 +218,19 @@ export const startKlayrCore = async (
 			throw new Error(`Port ${rpcPort} is not available to start the RPC server.`);
 		}
 
-		// Backup Lisk Core v4 data directory and legacy snapshot into the Core v4 legacy.db
-		await backupLegacyDataDir(_this, liskCoreV4DataPath);
+		// Backup Swaptoshi Core data directory and legacy snapshot into the Core legacy.db
+		await backupLegacyDataDir(_this, swaptoshiCoreDataPath);
 		await copyLegacyDB(_this);
 
 		const configPath = await getFinalConfigPath(outputDir, network);
 
 		const pm2Config = {
-			name: 'klayr-core-v4',
-			script: await resolveKlayrCoreStartCommand(_this, network, configPath),
+			name: 'swaptoshi-core',
+			script: await resolveSwaptoshiCoreStartCommand(_this, network, configPath),
 		};
 
 		const isUserConfirmed = await cli.confirm(
-			`Start Klayr Core with the following pm2 configuration? [yes/no]\n${JSON.stringify(
+			`Start Swaptoshi Core with the following pm2 configuration? [yes/no]\n${JSON.stringify(
 				pm2Config,
 				null,
 				'\t',
@@ -238,7 +239,7 @@ export const startKlayrCore = async (
 
 		if (!isUserConfirmed) {
 			_this.error(
-				'User did not confirm to start Klayr Core v4 with the customized PM2 config. Skipping the Klayr Core v4 auto-start process. Please start the node manually.',
+				'User did not confirm to start Swaptoshi Core with the customized PM2 config. Skipping the Swaptoshi Core auto-start process. Please start the node manually.',
 			);
 		}
 
@@ -256,7 +257,7 @@ export const startKlayrCore = async (
 	} catch (err) {
 		throw new MigratorException(
 			`${(err as Error).message}`,
-			err instanceof MigratorException ? err.code : ERROR_CODE.KLAYR_CORE_START,
+			err instanceof MigratorException ? err.code : ERROR_CODE.SWAPTOSHI_CORE_START,
 		);
 	}
 };

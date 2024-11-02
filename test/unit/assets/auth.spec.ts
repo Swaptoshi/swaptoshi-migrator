@@ -11,7 +11,7 @@
  *
  * Removal or modification of this copyright notice is prohibited.
  */
-import { address } from '@liskhq/lisk-cryptography';
+import { address } from '@klayr/cryptography';
 import { getAuthModuleEntry, getAuthModuleEntryBuffer } from '../../../src/assets/auth';
 import { MODULE_NAME_AUTH } from '../../../src/constants';
 import {
@@ -23,7 +23,7 @@ import {
 import { AuthAccount, createFakeDefaultAuthAccount } from '../utils/account';
 import { ADDRESS_KLAYR32 } from '../utils/regex';
 
-const { getLisk32AddressFromAddress } = address;
+const { getKlayr32AddressFromAddress } = address;
 
 describe('Build assets/auth', () => {
 	let accounts: AuthAccount[];
@@ -71,7 +71,7 @@ describe('Build assets/auth', () => {
 				.sort((a, b) => a.address.compare(b.address))
 				.map(entry => ({
 					...entry,
-					address: getLisk32AddressFromAddress(entry.address, 'kly'),
+					address: getKlayr32AddressFromAddress(entry.address),
 				})),
 		);
 

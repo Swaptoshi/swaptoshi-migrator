@@ -14,7 +14,7 @@
  */
 import { Database } from '@liskhq/lisk-db';
 import { when } from 'jest-when';
-import { uint32BE } from '@liskhq/lisk-chain/dist-node/utils';
+import { uint32BE } from '@klayr/chain/dist-node/utils';
 import { getBlockHeaderByHeight } from '../../../src/utils/block';
 
 jest.mock('@liskhq/lisk-db');

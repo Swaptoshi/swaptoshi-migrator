@@ -40,7 +40,7 @@ export const isPortAvailable = async (port: Port): Promise<boolean | Error> =>
 
 export const getChainId = async (
 	network: string | null,
-	liskCoreV4DataPath: string,
+	swaptoshiCoreDataPath: string,
 ): Promise<string> => {
 	const chainID = network
 		? (() => {
@@ -52,7 +52,7 @@ export const getChainId = async (
 				return chainId;
 		  })()
 		: await (async () => {
-				const client = await getAPIClient(liskCoreV4DataPath);
+				const client = await getAPIClient(swaptoshiCoreDataPath);
 				const nodeInfo = await client.node.getNodeInfo();
 				return nodeInfo.chainID;
 		  })();

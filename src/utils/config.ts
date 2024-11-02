@@ -14,14 +14,15 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import * as fs from 'fs-extra';
+import * as utils from '@klayr/utils';
 import cli from 'cli-ux';
 import { Command } from '@oclif/command';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
-import { validator } from '@liskhq/lisk-validator';
-import { ApplicationConfig, applicationConfigSchema } from 'lisk-framework';
-import { objects } from '@liskhq/lisk-utils';
-import { LoggerConfig } from '../types';
+import { validator } from '@klayr/validator';
+import { ApplicationConfig, applicationConfigSchema } from 'klayr-framework';
+import { objects } from '@klayr/utils';
+import { GenesisAssetEntry, LoggerConfig, NetworkConfigLocal } from '../types';
 import {
 	BLOCK_TIME,
 	DEFAULT_VERSION,
@@ -81,7 +82,7 @@ export const getConfig = async (
 		? await fs.readJSON(resolveAbsolutePath(customConfigPath))
 		: {};
 
-	cli.action.start('Compiling Lisk Core configuration');
+	cli.action.start('Compiling Swaptoshi Core configuration');
 	const config = objects.mergeDeep({}, dataDirConfig, customConfig) as ApplicationConfig;
 	cli.action.stop();
 
@@ -91,125 +92,143 @@ export const getConfig = async (
 export const resolveConfigDefaultPath = async (networkName: string): Promise<string> =>
 	resolve(__dirname, '../../config', networkName, 'config.json');
 
+export const resolveBaseGenesisAssetsDefaultPath = async (networkName: string): Promise<string> =>
+	resolve(__dirname, '../../config', networkName, 'genesis_assets.json');
+
 export const createBackup = async (config: ApplicationConfig): Promise<void> => {
 	const backupPath = join(__dirname, '../..', 'backup');
 	mkdirSync(backupPath, { recursive: true });
 	writeFileSync(resolve(`${backupPath}/config.json`), JSON.stringify(config, null, '\t'));
 };
 
+export const updateConfigSubstore = (
+	assets: GenesisAssetEntry[],
+	networkConstant: NetworkConfigLocal,
+) => {
+	const assetsClone = utils.objects.cloneDeep(assets);
+	for (const configToUpdate of networkConstant.updatedConfigSubstore) {
+		const index = assetsClone.findIndex(t => t.module === configToUpdate.module);
+		if (index !== -1 && Object.keys(assetsClone[index].data).includes('configSubstore')) {
+			(assetsClone[index].data.configSubstore as {
+				data: string;
+			}).data = configToUpdate.data.toString('hex');
+		}
+	}
+	return assetsClone;
+};
+
 export const migrateUserConfig = async (
-	configV4: ApplicationConfig,
-	configKlayrV4: ApplicationConfig,
+	oldConfig: ApplicationConfig,
+	newConfig: ApplicationConfig,
 	snapshotHeight: number,
 ): Promise<ApplicationConfig> => {
 	cli.action.start('Starting migration of custom config properties.');
 
 	// Assign default version if not available
 	// Assign system config properties
-	if (!configKlayrV4.system?.version) {
+	if (!newConfig.system?.version) {
 		cli.action.start(`Setting config property 'system.version' to: ${DEFAULT_VERSION}.`);
-		configKlayrV4.system.version = DEFAULT_VERSION;
+		newConfig.system.version = DEFAULT_VERSION;
 		cli.action.stop();
 	}
 
-	if (configV4?.system?.logLevel) {
+	if (oldConfig?.system?.logLevel) {
 		cli.action.start(
-			`Setting config property 'system.logLevel' to: ${configV4?.system?.logLevel}.`,
+			`Setting config property 'system.logLevel' to: ${oldConfig?.system?.logLevel}.`,
 		);
-		configKlayrV4.system.logLevel = configV4?.system?.logLevel;
+		newConfig.system.logLevel = oldConfig?.system?.logLevel;
 		cli.action.stop();
 	}
 
-	if (configV4?.system?.keepEventsForHeights) {
+	if (oldConfig?.system?.keepEventsForHeights) {
 		cli.action.start(
-			`Setting config property 'system.keepEventsForHeights' to: ${configV4.system.keepEventsForHeights}.`,
+			`Setting config property 'system.keepEventsForHeights' to: ${oldConfig.system.keepEventsForHeights}.`,
 		);
-		configKlayrV4.system.keepEventsForHeights = configV4.system.keepEventsForHeights;
+		newConfig.system.keepEventsForHeights = oldConfig.system.keepEventsForHeights;
 		cli.action.stop();
 	}
 
-	if (configV4?.system?.keepInclusionProofsForHeights) {
+	if (oldConfig?.system?.keepInclusionProofsForHeights) {
 		cli.action.start(
-			`Setting config property 'system.keepInclusionProofsForHeights' to: ${configV4.system.keepInclusionProofsForHeights}.`,
+			`Setting config property 'system.keepInclusionProofsForHeights' to: ${oldConfig.system.keepInclusionProofsForHeights}.`,
 		);
-		configKlayrV4.system.keepInclusionProofsForHeights =
-			configV4.system.keepInclusionProofsForHeights;
+		newConfig.system.keepInclusionProofsForHeights = oldConfig.system.keepInclusionProofsForHeights;
 		cli.action.stop();
 	}
 
-	if (configV4?.system?.inclusionProofKeys) {
+	if (oldConfig?.system?.inclusionProofKeys) {
 		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 		cli.action.start(
-			`Setting config property 'system.inclusionProofKeys' to: ${configV4.system.inclusionProofKeys}.`,
+			`Setting config property 'system.inclusionProofKeys' to: ${oldConfig.system.inclusionProofKeys}.`,
 		);
-		configKlayrV4.system.inclusionProofKeys = configV4.system.inclusionProofKeys;
+		newConfig.system.inclusionProofKeys = oldConfig.system.inclusionProofKeys;
 		cli.action.stop();
 	}
 
-	if (configV4?.system?.enableMetrics) {
+	if (oldConfig?.system?.enableMetrics) {
 		cli.action.start('Setting config property system.enableMetrics');
-		configKlayrV4.system.enableMetrics = configV4.system.enableMetrics;
+		newConfig.system.enableMetrics = oldConfig.system.enableMetrics;
 		cli.action.stop();
 	}
 
 	// Assign rpc config properties
-	if (configV4?.rpc?.modes) {
+	if (oldConfig?.rpc?.modes) {
 		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-		cli.action.start(`Setting config property 'rpc.modes' to: ${configV4.rpc.modes}.`);
-		configKlayrV4.rpc.modes = configV4.rpc.modes;
+		cli.action.start(`Setting config property 'rpc.modes' to: ${oldConfig.rpc.modes}.`);
+		newConfig.rpc.modes = oldConfig.rpc.modes;
 		cli.action.stop();
 	}
-	if (configV4?.rpc?.port) {
-		cli.action.start(`Setting config property 'rpc.port' to: ${configV4.rpc.port}.`);
-		configKlayrV4.rpc.port = configV4.rpc.port;
+	if (oldConfig?.rpc?.port) {
+		cli.action.start(`Setting config property 'rpc.port' to: ${oldConfig.rpc.port}.`);
+		newConfig.rpc.port = oldConfig.rpc.port;
 		cli.action.stop();
 	}
-	if (configV4?.rpc?.host) {
-		cli.action.start(`Setting config property 'rpc.host' to: ${configV4.rpc.host}.`);
-		configKlayrV4.rpc.host = configV4.rpc.host;
+	if (oldConfig?.rpc?.host) {
+		cli.action.start(`Setting config property 'rpc.host' to: ${oldConfig.rpc.host}.`);
+		newConfig.rpc.host = oldConfig.rpc.host;
 		cli.action.stop();
 	}
-	if (configV4?.rpc?.allowedMethods) {
+	if (oldConfig?.rpc?.allowedMethods) {
 		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 		cli.action.start(
-			`Setting config property 'rpc.allowedMethods' to: ${configV4.rpc.allowedMethods}.`,
+			`Setting config property 'rpc.allowedMethods' to: ${oldConfig.rpc.allowedMethods}.`,
 		);
-		configKlayrV4.rpc.allowedMethods = configV4.rpc.allowedMethods;
+		newConfig.rpc.allowedMethods = oldConfig.rpc.allowedMethods;
 		cli.action.stop();
 	}
-	if (configV4?.rpc?.accessControlAllowOrigin) {
+	if (oldConfig?.rpc?.accessControlAllowOrigin) {
 		cli.action.start(
-			`Setting config property 'rpc.accessControlAllowOrigin' to: ${configV4.rpc.accessControlAllowOrigin}.`,
+			`Setting config property 'rpc.accessControlAllowOrigin' to: ${oldConfig.rpc.accessControlAllowOrigin}.`,
 		);
-		configKlayrV4.rpc.accessControlAllowOrigin = configV4.rpc.accessControlAllowOrigin;
+		newConfig.rpc.accessControlAllowOrigin = oldConfig.rpc.accessControlAllowOrigin;
 		cli.action.stop();
 	}
 
 	// Assign genesis config properties
-	if (configV4?.genesis?.block?.fromFile || configV4?.genesis?.block?.blob) {
+	if (oldConfig?.genesis?.block?.fromFile || oldConfig?.genesis?.block?.blob) {
 		cli.action.start('Setting config property "genesis.block".');
 		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-		configKlayrV4.genesis.block = { ...configKlayrV4.genesis.block, ...configV4.genesis.block };
+		newConfig.genesis.block = { ...newConfig.genesis.block, ...oldConfig.genesis.block };
 		cli.action.stop();
 	}
-	if (!configKlayrV4?.genesis?.blockTime) {
+	if (!newConfig?.genesis?.blockTime) {
 		cli.action.start(`Setting config property 'genesis.blockTime' to: ${BLOCK_TIME}.`);
-		configKlayrV4.genesis.blockTime = BLOCK_TIME;
+		newConfig.genesis.blockTime = BLOCK_TIME;
 		cli.action.stop();
 	}
-	if (configV4?.genesis?.chainID) {
-		cli.action.start(`Setting config property 'genesis.chainID' to: ${configV4.genesis.chainID}.`);
-		configKlayrV4.genesis.chainID = configV4.genesis.chainID;
+	if (oldConfig?.genesis?.chainID) {
+		cli.action.start(`Setting config property 'genesis.chainID' to: ${oldConfig.genesis.chainID}.`);
+		newConfig.genesis.chainID = oldConfig.genesis.chainID;
 		cli.action.stop();
 	}
-	if (configV4?.genesis?.maxTransactionsSize) {
+	if (oldConfig?.genesis?.maxTransactionsSize) {
 		cli.action.start('Setting config property `genesis.maxTransactionsSize`.');
-		configKlayrV4.genesis.maxTransactionsSize = configV4.genesis.maxTransactionsSize;
+		newConfig.genesis.maxTransactionsSize = oldConfig.genesis.maxTransactionsSize;
 		cli.action.stop();
 	}
 
 	cli.action.start("Calculating and updating config property 'genesis.minimumCertifyHeight'.");
-	configKlayrV4.genesis.minimumCertifyHeight =
+	newConfig.genesis.minimumCertifyHeight =
 		snapshotHeight +
 		1 +
 		(POS_INIT_ROUNDS + NUMBER_ACTIVE_VALIDATORS - 1) *
@@ -217,112 +236,112 @@ export const migrateUserConfig = async (
 	cli.action.stop();
 
 	// Assign transaction pool config properties
-	if (configV4?.transactionPool) {
-		if (configV4?.transactionPool?.maxTransactions) {
+	if (oldConfig?.transactionPool) {
+		if (oldConfig?.transactionPool?.maxTransactions) {
 			cli.action.start(
-				`Setting config property 'transactionPool.maxTransactions' to: ${configV4.transactionPool.maxTransactions}.`,
+				`Setting config property 'transactionPool.maxTransactions' to: ${oldConfig.transactionPool.maxTransactions}.`,
 			);
-			((configKlayrV4.transactionPool
-				.maxTransactions as unknown) as number) = configV4.transactionPool.maxTransactions;
+			((newConfig.transactionPool
+				.maxTransactions as unknown) as number) = oldConfig.transactionPool.maxTransactions;
 			cli.action.stop();
 		}
 
-		if (configV4?.transactionPool?.maxTransactionsPerAccount) {
+		if (oldConfig?.transactionPool?.maxTransactionsPerAccount) {
 			cli.action.start(
-				`Setting config property 'transactionPool.maxTransactionsPerAccount' to: ${configV4.transactionPool.maxTransactionsPerAccount}.`,
+				`Setting config property 'transactionPool.maxTransactionsPerAccount' to: ${oldConfig.transactionPool.maxTransactionsPerAccount}.`,
 			);
-			((configKlayrV4.transactionPool
-				.maxTransactionsPerAccount as unknown) as number) = configV4.transactionPool.maxTransactionsPerAccount;
+			((newConfig.transactionPool
+				.maxTransactionsPerAccount as unknown) as number) = oldConfig.transactionPool.maxTransactionsPerAccount;
 			cli.action.stop();
 		}
 
-		if (configV4?.transactionPool?.transactionExpiryTime) {
+		if (oldConfig?.transactionPool?.transactionExpiryTime) {
 			cli.action.start(
-				`Setting config property 'transactionPool.transactionExpiryTime' to: ${configV4.transactionPool.transactionExpiryTime}.`,
+				`Setting config property 'transactionPool.transactionExpiryTime' to: ${oldConfig.transactionPool.transactionExpiryTime}.`,
 			);
-			((configKlayrV4.transactionPool
-				.transactionExpiryTime as unknown) as number) = configV4.transactionPool.transactionExpiryTime;
+			((newConfig.transactionPool
+				.transactionExpiryTime as unknown) as number) = oldConfig.transactionPool.transactionExpiryTime;
 			cli.action.stop();
 		}
 
-		if (configV4?.transactionPool?.minEntranceFeePriority) {
+		if (oldConfig?.transactionPool?.minEntranceFeePriority) {
 			cli.action.start(
-				`Setting config property 'transactionPool.minEntranceFeePriority' to: ${configV4.transactionPool.minEntranceFeePriority}.`,
+				`Setting config property 'transactionPool.minEntranceFeePriority' to: ${oldConfig.transactionPool.minEntranceFeePriority}.`,
 			);
-			((configKlayrV4.transactionPool
-				.minEntranceFeePriority as unknown) as string) = configV4.transactionPool.minEntranceFeePriority;
+			((newConfig.transactionPool
+				.minEntranceFeePriority as unknown) as string) = oldConfig.transactionPool.minEntranceFeePriority;
 			cli.action.stop();
 		}
 
-		if (configV4?.transactionPool?.minReplacementFeeDifference) {
+		if (oldConfig?.transactionPool?.minReplacementFeeDifference) {
 			cli.action.start(
-				`Setting config property 'transactionPool.minReplacementFeeDifference' to: ${configV4.transactionPool.minReplacementFeeDifference}.`,
+				`Setting config property 'transactionPool.minReplacementFeeDifference' to: ${oldConfig.transactionPool.minReplacementFeeDifference}.`,
 			);
-			((configKlayrV4.transactionPool
-				.minReplacementFeeDifference as unknown) as string) = configV4.transactionPool.minReplacementFeeDifference;
+			((newConfig.transactionPool
+				.minReplacementFeeDifference as unknown) as string) = oldConfig.transactionPool.minReplacementFeeDifference;
 			cli.action.stop();
 		}
 	}
 
 	// Assign network config properties
-	if (configV4?.network) {
-		if (configV4?.network?.port) {
-			cli.action.start(`Setting config property 'network.port' to: ${configV4.network.port}.`);
-			configKlayrV4.network.port = configV4.network.port;
+	if (oldConfig?.network) {
+		if (oldConfig?.network?.port) {
+			cli.action.start(`Setting config property 'network.port' to: ${oldConfig.network.port}.`);
+			newConfig.network.port = oldConfig.network.port;
 			cli.action.stop();
 		}
 
-		if (configV4?.network?.host) {
-			cli.action.start(`Setting config property 'network.host' to: ${configV4.network.host}.`);
-			configKlayrV4.network.host = configV4.network.host;
+		if (oldConfig?.network?.host) {
+			cli.action.start(`Setting config property 'network.host' to: ${oldConfig.network.host}.`);
+			newConfig.network.host = oldConfig.network.host;
 			cli.action.stop();
 		}
 
-		if (configV4?.network?.maxOutboundConnections) {
+		if (oldConfig?.network?.maxOutboundConnections) {
 			cli.action.start(
-				`Setting config property 'network.maxOutboundConnections' to: ${configV4.network.maxOutboundConnections}.`,
+				`Setting config property 'network.maxOutboundConnections' to: ${oldConfig.network.maxOutboundConnections}.`,
 			);
-			configKlayrV4.network.maxOutboundConnections = configV4.network.maxOutboundConnections;
+			newConfig.network.maxOutboundConnections = oldConfig.network.maxOutboundConnections;
 			cli.action.stop();
 		}
 
-		if (configV4?.network?.maxInboundConnections) {
+		if (oldConfig?.network?.maxInboundConnections) {
 			cli.action.start(
-				`Setting config property 'network.maxInboundConnections' to: ${configV4.network.maxInboundConnections}.`,
+				`Setting config property 'network.maxInboundConnections' to: ${oldConfig.network.maxInboundConnections}.`,
 			);
-			configKlayrV4.network.maxInboundConnections = configV4.network.maxInboundConnections;
+			newConfig.network.maxInboundConnections = oldConfig.network.maxInboundConnections;
 			cli.action.stop();
 		}
 
-		if (configV4?.network?.wsMaxPayload) {
+		if (oldConfig?.network?.wsMaxPayload) {
 			cli.action.start(
-				`Setting config property 'network.wsMaxPayload' to: ${configV4.network.wsMaxPayload}.`,
+				`Setting config property 'network.wsMaxPayload' to: ${oldConfig.network.wsMaxPayload}.`,
 			);
-			configKlayrV4.network.wsMaxPayload = configV4.network.wsMaxPayload;
+			newConfig.network.wsMaxPayload = oldConfig.network.wsMaxPayload;
 			cli.action.stop();
 		}
 
-		if (configV4?.network?.advertiseAddress) {
+		if (oldConfig?.network?.advertiseAddress) {
 			cli.action.start(
-				`Setting config property 'network.advertiseAddress' to: ${configV4.network.advertiseAddress}.`,
+				`Setting config property 'network.advertiseAddress' to: ${oldConfig.network.advertiseAddress}.`,
 			);
-			configKlayrV4.network.advertiseAddress = configV4.network.advertiseAddress;
+			newConfig.network.advertiseAddress = oldConfig.network.advertiseAddress;
 			cli.action.stop();
 		}
 	}
 
 	// Assign forging config properties
-	if (configKlayrV4.modules?.pos && !configKlayrV4.modules?.pos?.maxBFTWeightCap) {
+	if (newConfig.modules?.pos && !newConfig.modules?.pos?.maxBFTWeightCap) {
 		cli.action.start(
 			`Setting config property 'modules.pos.maxBFTWeightCap' to: ${MAX_BFT_WEIGHT_CAP}.`,
 		);
-		configKlayrV4.modules.pos.maxBFTWeightCap = MAX_BFT_WEIGHT_CAP;
+		newConfig.modules.pos.maxBFTWeightCap = MAX_BFT_WEIGHT_CAP;
 		cli.action.stop();
 	}
 
 	cli.action.stop();
 
-	return configKlayrV4;
+	return newConfig;
 };
 
 export const validateConfig = async (config: ApplicationConfig): Promise<boolean> => {

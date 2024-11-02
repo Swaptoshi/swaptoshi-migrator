@@ -1,16 +1,14 @@
 ![Logo](./docs/assets/banner_migrator.png)
 
-# Klayr Migrator
+# Swaptoshi Migrator
 
-Klayr Migrator is a command line tool to migrate the blockchain data to the latest protocol when hard fork.
+Swaptoshi Migrator is a command line tool to migrate the blockchain data to the latest protocol when hard fork.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Code coverage](https://codecov.io/gh/klayrhq/klayr-migrator/branch/main/graph/badge.svg?token=ICP600XKH1)](https://codecov.io/gh/klayrhq/klayr-migrator)
-[![DeepScan grade](https://deepscan.io/api/teams/6759/projects/24469/branches/755683/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=6759&pid=24469&bid=755683)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/klayrhq/klayr-migrator)
-![GitHub repo size](https://img.shields.io/github/repo-size/klayrhq/klayr-migrator)
-![GitHub issues](https://img.shields.io/github/issues-raw/klayrhq/klayr-migrator)
-![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/klayrhq/klayr-migrator)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/swaptoshi/swaptoshi-migrator)
+![GitHub repo size](https://img.shields.io/github/repo-size/swaptoshi/swaptoshi-migrator)
+![GitHub issues](https://img.shields.io/github/issues-raw/swaptoshi/swaptoshi-migrator)
+![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/swaptoshi/swaptoshi-migrator)
 
 ## Installation
 
@@ -18,17 +16,17 @@ Klayr Migrator is a command line tool to migrate the blockchain data to the late
 
 The following dependencies need to be installed in order to run applications created with the Klayr SDK:
 
-| Dependencies | Version        |
-| ------------ | -------------- |
-| NodeJS       | ^18.20.2       |
-| NPM          | 9.8.1 or later |
-| Lisk Core    | 4.0.1 or later |
+| Dependencies   | Version                |
+| -------------- | ---------------------- |
+| NodeJS         | ^18.20.2               |
+| NPM            | 9.8.1 or later         |
+| Swaptoshi Core | 1.0.0-alpha.0 or later |
 
-**NOTE**: It is important that NodeJS is installed using NVM. Please refer our documentation [here](https://klayr.xyz/documentation/klayr-core/v4/setup/npm.html#node-js-npm).
+**NOTE**: It is important that NodeJS is installed using NVM. Please refer our documentation [here](https://docs.swaptoshi.com/node/install).
 
 ### System requirements
 
-The following system requirements are recommended to run Klayr Migrator v2.0.9:
+The following system requirements are recommended to run Swaptoshi Migrator:
 
 #### Memory
 
@@ -40,15 +38,15 @@ The following system requirements are recommended to run Klayr Migrator v2.0.9:
 
 ## Setup
 
-Follow our Klayr Documentation guide for [setting up the Klayr migrator](https://klayr.xyz/documentation/klayr-core/management/migration.html#setting-up-the-klayr-migrator).
+Follow Klayr Documentation guide for [setting up the migrator](https://klayr.xyz/documentation/klayr-core/management/migration.html#setting-up-the-klayr-migrator).
 
 ### Build Distributions (Linux, Darwin) from source
 
-Clone the Klayr Migrator repository using Git and initialize the modules.
+Clone the Swaptoshi Migrator repository using Git and initialize the modules.
 
 ```sh
-$ git clone https://github.com/klayrhq/klayr-migrator
-$ cd klayr-migrator
+$ git clone https://github.com/swaptoshi/swaptoshi-migrator
+$ cd swaptoshi-migrator
 $ git checkout $tag
 $ nvm install $(cat .nvmrc)
 $ npm install --global yarn
@@ -68,23 +66,23 @@ After building the binaries, please extract the appropriate tarball and add it t
 $ MIGRATOR_VERSION=$(jq -r .version < package.json)
 $ PLATFORM=$(uname | tr '[:upper:]' '[:lower:]')
 $ ARCH=$(uname -m | sed 's/x86_64/x64/')
-$ mkdir ~/klayr-migrator-extract
-$ find ./dist -name klayr-migrator-v$MIGRATOR_VERSION-$PLATFORM-$ARCH.tar.gz -exec cp {} ~/klayr-migrator-extract \;
-$ tar -C ~/klayr-migrator-extract -xf ~/klayr-migrator-extract/klayr-migrator-v$MIGRATOR_VERSION-$PLATFORM-$ARCH.tar.gz
-$ export PATH="$PATH:$HOME/klayr-migrator-extract/klayr-migrator/bin"
+$ mkdir ~/swaptoshi-migrator-extract
+$ find ./dist -name swaptoshi-migrator-v$MIGRATOR_VERSION-$PLATFORM-$ARCH.tar.gz -exec cp {} ~/swaptoshi-migrator-extract \;
+$ tar -C ~/swaptoshi-migrator-extract -xf ~/swaptoshi-migrator-extract/swaptoshi-migrator-v$MIGRATOR_VERSION-$PLATFORM-$ARCH.tar.gz
+$ export PATH="$PATH:$HOME/swaptoshi-migrator-extract/swaptoshi-migrator/bin"
 ```
 
 <!-- usage -->
 
 ```sh-session
-$ npm install -g klayr-migrator
-$ lisk-migrator COMMAND
+$ npm install -g swaptoshi-migrator
+$ swaptoshi-migrator COMMAND
 running command...
-$ klayr-migrator (-v|--version|version)
-klayr-migrator/2.0.9 darwin-arm64 node-v18.20.1
-$ klayr-migrator --help [COMMAND]
+$ swaptoshi-migrator (-v|--version|version)
+swaptoshi-migrator/2.0.9 darwin-arm64 node-v18.20.1
+$ swaptoshi-migrator --help [COMMAND]
 USAGE
-  $ klayr-migrator COMMAND
+  $ swaptoshi-migrator COMMAND
 ...
 ```
 
@@ -96,33 +94,34 @@ USAGE
 
 # Command Topics
 
-- [`klayr-migrator help`](docs/commands/help.md) - display help for klayr-migrator
+- [`swaptoshi-migrator help`](docs/commands/help.md) - display help for swaptoshi-migrator
 
 <!-- commandsstop -->
 
 ### Running Tests
 
-Klayr Migrator has an extensive set of unit tests. To run the tests, please install Klayr Migrator from source, and then run the command:
+Swaptoshi Migrator has an extensive set of unit tests. To run the tests, please install Swaptoshi Migrator from source, and then run the command:
 
 ```sh
 $ npm test
 ```
 
-## Migrating from Lisk Core v4.0.x to Klayr core v4.0.x
+## Migrating Swaptoshi Core
 
-The [migration guide](./docs/migration.md) explains the transition process from Lisk Core v4.0.1 (or later) to Klayr Core v4.0.x using Klayr Migrator v3.
+The [migration guide](./docs/migration.md) explains the transition process of Swaptoshi Core using this Swaptoshi Migrator.
 
 ## Get Involved
 
-| Reason                          | How                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| Want to chat with our community | [Reach them on Discord](http://klayr.chat)                               |
-| Found a bug                     | [Open a new issue](https://github.com/klayrhq/klayr-migrator/issues/new) |
-| Want to develop with us         | [Create a fork](https://github.com/klayrhq/klayr-migrator/fork)          |
+| Reason                          | How                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| Want to chat with our community | [Reach them on Discord](http://klayr.chat)                                     |
+| Found a bug                     | [Open a new issue](https://github.com/swaptoshi/swaptoshi-migrator/issues/new) |
+| Want to develop with us         | [Create a fork](https://github.com/swaptoshi/swaptoshi-migrator/fork)          |
 
 ## License
 
 Copyright 2024 Klayr Holding BV.
+
 Copyright 2016-2024 Lisk Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");

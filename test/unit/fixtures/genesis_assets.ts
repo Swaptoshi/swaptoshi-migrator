@@ -96,7 +96,7 @@ export const genesisAssets = {
 		{
 			module: 'interoperability',
 			data: {
-				ownChainName: 'lisk_mainchain',
+				ownChainName: 'klayr_mainchain',
 				ownChainNonce: 0,
 				chainInfos: [],
 				terminatedStateAccounts: [],

@@ -15,7 +15,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import { Database, StateDB } from '@liskhq/lisk-db';
-import { MODULE_NAME_POS } from 'lisk-framework/dist-node/modules/pos/constants';
+import * as utils from '@klayr/utils';
+import { MODULE_NAME_POS } from 'klayr-framework/dist-node/modules/pos/constants';
 import {
 	createGenesisDataObj,
 	getPoSModuleEntry,
@@ -27,22 +28,30 @@ import {
 	getPrevSnapshotBlockHeight,
 	setAdditionalAccountsByChainID,
 	setPrevSnapshotBlockHeightByNetID,
-	setTokenIDKlyByNetID,
+	setTokenIDSwxByNetID,
 } from '../../../src/utils';
+import { NETWORK_CONSTANT } from '../../../src/constants';
 
 describe('Build assets/pos', () => {
 	it('should create createPoSModuleEntry', async () => {
 		const db = new StateDB('test/unit/fixtures/data/state.db', { readonly: true });
 		const blockchainDB = new Database('test/unit/fixtures/data/blockchain.db', { readonly: true });
-		setTokenIDKlyByNetID('01000000');
-		setPrevSnapshotBlockHeightByNetID('01000000');
-		setAdditionalAccountsByChainID('01000000');
-		const { sortedClaimedStakers, validatorKeys } = await processRewards(db, blockchainDB);
+		const networkConstant = utils.objects.cloneDeep(NETWORK_CONSTANT['01555555']);
+		networkConstant.tokenID = '0100000000000000';
+
+		setTokenIDSwxByNetID('01555555');
+		setPrevSnapshotBlockHeightByNetID('01555555');
+		setAdditionalAccountsByChainID('01555555');
+		const { sortedClaimedStakers, validatorKeys } = await processRewards(
+			db,
+			blockchainDB,
+			networkConstant,
+		);
 		const decodedDelegatesVoteWeights = await getSnapshots(db);
 		const genesisData: GenesisDataEntry = await createGenesisDataObj(
 			validatorKeys,
 			decodedDelegatesVoteWeights,
-			21626292 - getPrevSnapshotBlockHeight(),
+			605684 - getPrevSnapshotBlockHeight(),
 		);
 		const posModuleAssets = await getPoSModuleEntry(
 			validatorKeys,

@@ -33,7 +33,7 @@ describe('Test getNetworkIdentifier method', () => {
 	it('should return chainID when use-snapshot is true', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
 		const { getChainId } = require('../../../src/utils/network');
-		const chainID = await getChainId(network, './lisk/lisk-core');
+		const chainID = await getChainId(network, './klayr/swaptoshi-core');
 		expect(chainID).toBe(mainnetChainID);
 	});
 
@@ -49,7 +49,7 @@ describe('Test getNetworkIdentifier method', () => {
 
 		// eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
 		const { getChainId } = require('../../../src/utils/network');
-		const chainID = await getChainId(null, './lisk/lisk-core');
+		const chainID = await getChainId(null, './klayr/swaptoshi-core');
 		expect(chainID).toBe(mainnetChainID);
 	});
 });

@@ -13,26 +13,67 @@
  * Removal or modification of this copyright notice is prohibited.
  */
 import { Database, StateDB } from '@liskhq/lisk-db';
-import { getLisk32AddressFromAddress } from '@liskhq/lisk-cryptography/dist-node/address';
+import { getKlayr32AddressFromAddress } from '@klayr/cryptography/dist-node/address';
 import {
 	GenesisAssetEntry,
 	SupplySubstoreEntry,
 	AuthStoreEntry,
 	SupportedTokensSubstoreEntry,
 	GenesisDataEntry,
+	EscrowSubstoreEntry,
+	NetworkConfigLocal,
 } from './types';
 
 import { getInteropModuleEntry } from './assets/interoperability';
 import { getAuthAccounts, getAuthModuleEntry, getAuthModuleEntryBuffer } from './assets/auth';
 import { getEscrowTokens, getTokenModuleEntry } from './assets/token';
-import { getLegacyAccounts, getLegacyModuleEntry } from './assets/legacy';
 import {
 	createGenesisDataObj,
 	getPoSModuleEntry,
 	getSnapshots,
 	processRewards,
 } from './assets/pos';
-import { getPrevSnapshotBlockHeight } from './utils';
+import { getPrevSnapshotBlockHeight, updateConfigSubstore } from './utils';
+import {
+	getDexModuleEntry,
+	getObservationSubstore,
+	getPoolSubstore,
+	getPositionInfoSubstore,
+	getPositionManagerSubstore,
+	getSupportedTokenSubstore,
+	getTickBitmapSubstore,
+	getTickInfoSubstore,
+	getTokenSymbolSubstore,
+} from './assets/dex';
+import {
+	getAirdropSubstore,
+	getFactorySubstore,
+	getICOSubstore,
+	getNextAvailableTokenIdSubstore,
+	getTokenFactoryModuleEntry,
+	getVestingUnlockSubstore,
+} from './assets/tokenFactory';
+import {
+	getBoostedAccountSubstore,
+	getCastedVoteSubstore,
+	getDelegatedVoteSubstore,
+	getGovernableConfigSubstore,
+	getGovernanceModuleEntry,
+	getNextAvailableProposalIdSubstore,
+	getProposalQueueSubstore,
+	getProposalSubstore,
+	getProposalVoterSubstore,
+	getVoteScoreSubstore,
+} from './assets/governance';
+import {
+	DB_PREFIX_DEX_GOVERNABLE_CONFIG_STORE,
+	DB_PREFIX_FEE_CONVERSION_GOVERNABLE_CONFIG_STORE,
+	DB_PREFIX_GOVERNANCE_GOVERNABLE_CONFIG_STORE,
+	DB_PREFIX_LIQUID_POS_GOVERNABLE_CONFIG_STORE,
+	DB_PREFIX_TOKEN_FACTORY_GOVERNABLE_CONFIG_STORE,
+} from './constants';
+import { getFeeConversionModuleEntry } from './assets/feeConversion';
+import { getLiquidPosModuleEntry } from './assets/liquidPos';
 
 const AMOUNT_ZERO = BigInt('0');
 
@@ -45,12 +86,11 @@ export class CreateAsset {
 		this._blockchainDB = blockchainDB;
 	}
 
-	public init = async (snapshotHeight: number, tokenID: string): Promise<GenesisAssetEntry[]> => {
+	public init = async (
+		snapshotHeight: number,
+		networkConstant: NetworkConfigLocal,
+	): Promise<GenesisAssetEntry[]> => {
 		const supportedTokensSubstoreEntries: SupportedTokensSubstoreEntry[] = [];
-
-		// Create legacy module assets
-		const legacyAddresses = await getLegacyAccounts(this._db);
-		const legacyModuleAssets = await getLegacyModuleEntry(legacyAddresses);
 
 		// Create auth module assets
 		const allAccounts = await getAuthAccounts(this._db);
@@ -59,31 +99,41 @@ export class CreateAsset {
 			.sort((a, b) => a.address.compare(b.address))
 			.map(entry => ({
 				...entry,
-				address: getLisk32AddressFromAddress(entry.address, 'kly'),
+				address: getKlayr32AddressFromAddress(entry.address),
 			}));
 		const authModuleAssets = await getAuthModuleEntry(sortedAuthSubstoreEntries);
 		// Process tokens rewards and get assets
 		const {
 			sortedUserSubstore,
 			sortedClaimedStakers,
-			totalSupply,
+			sortedTotalSupplySubstore,
 			validatorKeys,
-		} = await processRewards(this._db, this._blockchainDB);
+		} = await processRewards(this._db, this._blockchainDB, networkConstant);
 
 		// Get escrow tokens
 		const escrowSubstore = await getEscrowTokens(this._db);
-		const totalEscrow = escrowSubstore.reduce(
-			(accumulator: bigint, escrow: { amount: bigint }) => accumulator + BigInt(escrow.amount),
-			AMOUNT_ZERO,
-		);
 
 		// Create supply assets
-		const supplySubstoreEntries: SupplySubstoreEntry[] = [
-			{
-				tokenID,
-				totalSupply: String(totalSupply + totalEscrow),
-			},
-		];
+		const supplySubstoreEntries: SupplySubstoreEntry[] = sortedTotalSupplySubstore;
+
+		escrowSubstore.forEach(t => {
+			const index = supplySubstoreEntries.findIndex(k => k.tokenID === t.tokenID.toString('hex'));
+			if (index !== -1) {
+				const totalEscrow = escrowSubstore.reduce(
+					(accumulator: bigint, escrow: EscrowSubstoreEntry) => {
+						if (t.tokenID.equals(escrow.tokenID)) {
+							return accumulator + BigInt(escrow.amount);
+						}
+						return accumulator;
+					},
+					AMOUNT_ZERO,
+				);
+
+				supplySubstoreEntries[index].totalSupply = String(
+					BigInt(supplySubstoreEntries[index].totalSupply) + totalEscrow,
+				);
+			}
+		});
 
 		// Create genesis data assets
 		const decodedDelegatesVoteWeights = await getSnapshots(this._db);
@@ -111,12 +161,104 @@ export class CreateAsset {
 		// Create interoperability module assets
 		const interoperabilityModuleAssets = await getInteropModuleEntry(this._db);
 
-		return [
-			legacyModuleAssets,
-			authModuleAssets,
-			tokenModuleAssets,
-			posModuleAssets,
-			interoperabilityModuleAssets,
-		].sort((a, b) => a.module.localeCompare(b.module, 'en')) as GenesisAssetEntry[];
+		// Create dex module assets
+		const observationSubstore = await getObservationSubstore(this._db);
+		const poolSubstore = await getPoolSubstore(this._db);
+		const positionInfoSubstore = await getPositionInfoSubstore(this._db);
+		const positionManagerSubstore = await getPositionManagerSubstore(this._db);
+		const supportedTokenSubstore = await getSupportedTokenSubstore(this._db);
+		const tickBitmapSubstore = await getTickBitmapSubstore(this._db);
+		const tickInfoSubstore = await getTickInfoSubstore(this._db);
+		const tokenSymbolSubstore = await getTokenSymbolSubstore(this._db);
+		const dexConfigSubstore = await getGovernableConfigSubstore(
+			this._db,
+			DB_PREFIX_DEX_GOVERNABLE_CONFIG_STORE,
+		);
+		const dexModuleAssets = await getDexModuleEntry(
+			observationSubstore,
+			poolSubstore,
+			positionInfoSubstore,
+			positionManagerSubstore,
+			supportedTokenSubstore,
+			tickBitmapSubstore,
+			tickInfoSubstore,
+			tokenSymbolSubstore,
+			dexConfigSubstore,
+		);
+
+		// create tokenFactory module assets
+		const airdropSubstore = await getAirdropSubstore(this._db);
+		const factorySubstore = await getFactorySubstore(this._db);
+		const icoSubstore = await getICOSubstore(this._db);
+		const nextAvailableTokenIdSubstore = await getNextAvailableTokenIdSubstore(this._db);
+		const vestingUnlockSubstore = await getVestingUnlockSubstore(this._db);
+		const tokenFactoryConfigSubstore = await getGovernableConfigSubstore(
+			this._db,
+			DB_PREFIX_TOKEN_FACTORY_GOVERNABLE_CONFIG_STORE,
+		);
+		const tokenFactoryModuleAssets = await getTokenFactoryModuleEntry(
+			airdropSubstore,
+			factorySubstore,
+			icoSubstore,
+			nextAvailableTokenIdSubstore,
+			vestingUnlockSubstore,
+			tokenFactoryConfigSubstore,
+		);
+
+		// create fee conversion module assets
+		const feeConversionConfigSubstore = await getGovernableConfigSubstore(
+			this._db,
+			DB_PREFIX_FEE_CONVERSION_GOVERNABLE_CONFIG_STORE,
+		);
+		const feeConversionModuleAssets = await getFeeConversionModuleEntry(
+			feeConversionConfigSubstore,
+		);
+
+		// create liquid pos module assets
+		const liquidPosConfigSubstore = await getGovernableConfigSubstore(
+			this._db,
+			DB_PREFIX_LIQUID_POS_GOVERNABLE_CONFIG_STORE,
+		);
+		const liquidPosModuleAssets = await getLiquidPosModuleEntry(liquidPosConfigSubstore);
+
+		// create governance module assets
+		const boostedAccountSubstore = await getBoostedAccountSubstore(this._db);
+		const castedVoteSubstore = await getCastedVoteSubstore(this._db);
+		const delegatedVoteSubstore = await getDelegatedVoteSubstore(this._db);
+		const nextAvailableProposalIdSubstore = await getNextAvailableProposalIdSubstore(this._db);
+		const proposalVoterSubstore = await getProposalVoterSubstore(this._db);
+		const proposalSubstore = await getProposalSubstore(this._db);
+		const queueSubstore = await getProposalQueueSubstore(this._db);
+		const voteScoreSubstore = await getVoteScoreSubstore(this._db);
+		const governanceConfigSubstore = await getGovernableConfigSubstore(
+			this._db,
+			DB_PREFIX_GOVERNANCE_GOVERNABLE_CONFIG_STORE,
+		);
+		const governanceModuleAssets = await getGovernanceModuleEntry(
+			boostedAccountSubstore,
+			castedVoteSubstore,
+			delegatedVoteSubstore,
+			nextAvailableProposalIdSubstore,
+			proposalVoterSubstore,
+			proposalSubstore,
+			queueSubstore,
+			voteScoreSubstore,
+			governanceConfigSubstore,
+		);
+
+		return updateConfigSubstore(
+			[
+				dexModuleAssets,
+				tokenFactoryModuleAssets,
+				feeConversionModuleAssets,
+				liquidPosModuleAssets,
+				governanceModuleAssets,
+				authModuleAssets,
+				tokenModuleAssets,
+				posModuleAssets,
+				interoperabilityModuleAssets,
+			].sort((a, b) => a.module.localeCompare(b.module, 'en')) as GenesisAssetEntry[],
+			networkConstant,
+		);
 	};
 }

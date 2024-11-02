@@ -12,11 +12,10 @@
  *
  * Removal or modification of this copyright notice is prohibited.
  */
-import { codec } from '@liskhq/lisk-codec';
+import { codec } from '@klayr/codec/';
 import { Database } from '@liskhq/lisk-db';
-import { BlockHeaderAttrs, blockHeaderSchema } from '@liskhq/lisk-chain';
-
-import { uint32BE } from '@liskhq/lisk-chain/dist-node/utils';
+import { BlockHeaderAttrs, blockHeaderSchema } from '@klayr/chain';
+import { uint32BE } from '@klayr/chain/dist-node/utils';
 
 export const getBlockHeaderByHeight = async (
 	db: Database,

@@ -16,7 +16,7 @@ import * as fs from 'fs-extra';
 import path from 'path';
 import { Command } from '@oclif/command';
 
-import { BlockHeader } from '@liskhq/lisk-chain';
+import { BlockHeader } from '@klayr/chain';
 import { ERROR_CODE, FILE_NAME, SNAPSHOT_TIME_GAP } from '../constants';
 import { GenesisAssetEntry } from '../types';
 import { execAsync } from './process';
@@ -66,7 +66,7 @@ export const createGenesisBlock = async (
 		const timestamp = blockHeaderAtSnapshotHeight.timestamp + SNAPSHOT_TIME_GAP;
 		const previousBlockID = blockHeaderAtSnapshotHeight.id.toString('hex');
 
-		genesisBlockCreateCommand = `klayr-core genesis-block:create --network ${network} --config=${configFilepath} --output=${outputDir} --assets-file=${outputDir}/genesis_assets.json --height=${height} --previous-block-id=${previousBlockID} --timestamp=${timestamp} --export-json`;
+		genesisBlockCreateCommand = `swaptoshi-core genesis-block:create --network ${network} --config=${configFilepath} --output=${outputDir} --assets-file=${outputDir}/genesis_assets.json --height=${height} --previous-block-id=${previousBlockID} --timestamp=${timestamp} --export-json`;
 		_this.log(
 			`\nExecuting the following command to generate the genesis block:\n${genesisBlockCreateCommand}`,
 		);
@@ -93,8 +93,8 @@ export const writeGenesisAssets = async (
 
 export const copyGenesisBlock = async (
 	currGenesisBlockFilepath: string,
-	liskCoreV4ConfigPath: string,
-): Promise<boolean | Error> => copyFile(currGenesisBlockFilepath, liskCoreV4ConfigPath);
+	swaptoshiCoreConfigPath: string,
+): Promise<boolean | Error> => copyFile(currGenesisBlockFilepath, swaptoshiCoreConfigPath);
 
 export const writeGenesisBlock = async (outputDir: string): Promise<void> => {
 	// Genesis BLOB handling

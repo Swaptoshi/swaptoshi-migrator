@@ -15,7 +15,7 @@ import { StateDB } from '@liskhq/lisk-db';
 import { MODULE_NAME_INTEROPERABILITY } from 'klayr-framework';
 import { getInteropModuleEntry } from '../../../src/assets/interoperability';
 import { GenesisAssetEntry } from '../../../src/types';
-import { KLAYR_CHAIN_NAME_MAINCHAIN } from '../../../src/constants';
+import { SWAPTOSHI_CHAIN_NAME_MAINCHAIN } from '../../../src/constants';
 
 describe('Build assets/interoperability', () => {
 	it('should create interoperability module asset', async () => {
@@ -29,7 +29,7 @@ describe('Build assets/interoperability', () => {
 			'terminatedStateAccounts',
 			'terminatedOutboxAccounts',
 		]);
-		expect(response.data.ownChainName).toBe(KLAYR_CHAIN_NAME_MAINCHAIN);
+		expect(response.data.ownChainName).toBe(SWAPTOSHI_CHAIN_NAME_MAINCHAIN);
 		expect(response.data.ownChainNonce).toBe(BigInt('61'));
 	});
 });

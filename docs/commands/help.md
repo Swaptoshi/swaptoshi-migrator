@@ -1,16 +1,16 @@
-# `klayr-migrator help`
+# `swaptoshi-migrator help`
 
-display help for klayr-migrator
+display help for swaptoshi-migrator
 
-- [`klayr-migrator help [COMMAND]`](#klayr-migrator-help-command)
+- [`swaptoshi-migrator help [COMMAND]`](#swaptoshi-migrator-help-command)
 
-## `klayr-migrator help [COMMAND]`
+## `swaptoshi-migrator help [COMMAND]`
 
-display help for klayr-migrator
+display help for swaptoshi-migrator
 
 ```
 USAGE
-  $ klayr-migrator help [COMMAND]
+  $ swaptoshi-migrator help [COMMAND]
 
 ARGUMENTS
   COMMAND  command to show help for

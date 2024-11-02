@@ -20,12 +20,12 @@ export const extractTarBall = async (
 	destDirPath: string,
 ): Promise<boolean | Error> =>
 	new Promise((resolve, reject) => {
-		if (fs.existsSync(destDirPath)) fs.rmdirSync(destDirPath, { recursive: true });
+		if (fs.existsSync(destDirPath)) fs.rmSync(destDirPath, { recursive: true });
 		fs.mkdirSync(destDirPath, { recursive: true });
 
 		const fileStream = fs.createReadStream(srcFilePath);
 		fileStream.pipe(tar.extract({ cwd: destDirPath }));
-		fileStream.on('error', err => reject(new Error(err)));
+		fileStream.on('error', err => reject(err));
 		// Adding delay of 100ms since the promise resolves earlier than expected
 		fileStream.on('end', () => setTimeout(resolve.bind(null, true), 100));
 	});
@@ -41,7 +41,7 @@ export const exists = async (inputPath: string): Promise<boolean | Error> => {
 
 export const rmdir = async (directoryPath: string, options = {}): Promise<boolean | Error> =>
 	new Promise((resolve, reject) => {
-		fs.rmdir(directoryPath, options, err => {
+		fs.rm(directoryPath, options, err => {
 			if (err) return reject(err);
 			return resolve(true);
 		});

@@ -13,21 +13,23 @@
  * Removal or modification of this copyright notice is prohibited.
  */
 import { posGenesisStoreSchema } from 'klayr-framework';
+import * as fs from 'fs-extra';
 import { Database, StateDB } from '@liskhq/lisk-db';
-import { validatorStoreSchema } from 'lisk-framework/dist-node/modules/pos/stores/validator';
-import { stakerStoreSchema } from 'lisk-framework/dist-node/modules/pos/stores/staker';
+import { validatorStoreSchema } from 'klayr-framework/dist-node/modules/pos/stores/validator';
+import { stakerStoreSchema } from 'klayr-framework/dist-node/modules/pos/stores/staker';
 import {
 	ValidatorKeys,
 	validatorKeysSchema,
-} from 'lisk-framework/dist-node/modules/validators/stores/validator_keys';
-import { codec } from '@liskhq/lisk-codec';
-import { Transaction, transactionSchema } from '@liskhq/lisk-chain';
+} from 'klayr-framework/dist-node/modules/validators/stores/validator_keys';
+import { codec } from '@klayr/codec/';
+import { Transaction, transactionSchema } from '@klayr/chain';
 import {
 	getAddressFromPublicKey,
-	getLisk32AddressFromAddress,
-} from '@liskhq/lisk-cryptography/dist-node/address';
-import { snapshotStoreSchema } from 'lisk-framework/dist-node/modules/pos/stores/snapshot';
+	getKlayr32AddressFromAddress,
+} from '@klayr/cryptography/dist-node/address';
+import { snapshotStoreSchema } from 'klayr-framework/dist-node/modules/pos/stores/snapshot';
 import { calculateStakeRewards } from 'klayr-framework/dist-node/modules/pos/utils';
+import { validatorRegistrationCommandParamsSchema } from 'klayr-framework/dist-node/modules/pos/schemas';
 import { registerKeysParamsSchema } from '../schemas';
 import { getStateStore } from '../utils/store';
 import {
@@ -40,6 +42,7 @@ import {
 	GenesisAssetEntry,
 	PoSStoreEntry,
 	BLSTransaction,
+	NetworkConfigLocal,
 } from '../types';
 import {
 	DUMMY_PROOF_OF_POSSESSION,
@@ -51,9 +54,10 @@ import {
 	DB_PREFIX_POS_STAKER_STORE,
 	DB_PREFIX_VALIDATORS_KEYS_STORE,
 	DB_PREFIX_POS_SNAPSHOT_STORE,
-	NUMBER_KLAYR_ACTIVE_VALIDATORS,
+	NUMBER_ACTIVE_VALIDATORS,
 } from '../constants';
 import { getTokenAccounts, sortUsersSubstore } from './token';
+import { resolveBaseGenesisAssetsDefaultPath } from '../utils';
 
 const AMOUNT_ZERO = BigInt('0');
 
@@ -96,6 +100,16 @@ export const getBLSTransactions = async (db: Database) => {
 		stream
 			.on('data', ({ value }: { key: Buffer; value: Buffer }) => {
 				const transaction = codec.decode(transactionSchema, value) as Transaction;
+				if (transaction.module === 'pos' && transaction.command === 'registerValidator') {
+					const params = codec.decode<BLSTransaction['params']>(
+						validatorRegistrationCommandParamsSchema,
+						transaction.params,
+					);
+					kv.push({
+						senderAddress: getAddressFromPublicKey(transaction.senderPublicKey),
+						params,
+					});
+				}
 				if (transaction.module === 'legacy' && transaction.command === 'registerKeys') {
 					const params = codec.decode<BLSTransaction['params']>(
 						registerKeysParamsSchema,
@@ -119,6 +133,7 @@ export const getBLSTransactions = async (db: Database) => {
 export const getValidatorKeys = async (
 	db: StateDB,
 	blockchainDB: Database,
+	networkConstant: NetworkConfigLocal,
 ): Promise<{ validatorKeys: ValidatorEntry[]; validatorIndex: Record<string, number> }> => {
 	const posValidatorStore = getStateStore(db, DB_PREFIX_POS_VALIDATOR_STORE);
 	const validators = (await posValidatorStore.iterateWithSchema(
@@ -128,13 +143,38 @@ export const getValidatorKeys = async (
 		},
 		validatorStoreSchema,
 	)) as { key: Buffer; value: ValidatorEntryBuffer }[];
+
+	const defaultGenesisAssetsFilePath = await resolveBaseGenesisAssetsDefaultPath(
+		networkConstant.name,
+	);
+	const defaultGenesisAssets = await fs.readJSON(defaultGenesisAssetsFilePath);
+	const defaultPosGenesisAssets = defaultGenesisAssets.assets.find(
+		(t: { module: string }) => t.module === 'pos',
+	);
+	if (!defaultGenesisAssets) {
+		throw new Error(
+			`genesis_assets.json in ${defaultGenesisAssetsFilePath} doens't include "pos" module. This is used to regenesis genesis validator's proofOfPossession`,
+		);
+	}
+	const genesisValidators = defaultPosGenesisAssets.data.validators;
+
 	const proofOfPossessions = await getBLSTransactions(blockchainDB);
 	const validatorIndex: Record<string, number> = {};
 	const validatorKeys: ValidatorEntry[] = await Promise.all(
 		validators.map(async ({ key, value }, index) => {
 			const bls = await getBLSKey(db, key);
-			const address = getLisk32AddressFromAddress(key, 'kly');
+			const address = getKlayr32AddressFromAddress(key);
 			validatorIndex[address] = index;
+
+			// eslint-disable-next-line no-nested-ternary
+			const proofOfPossession = proofOfPossessions.find(p => p.senderAddress.equals(key))
+				? proofOfPossessions
+						.find(p => p.senderAddress.equals(key))
+						?.params?.proofOfPossession?.toString('hex')
+				: genesisValidators.find((p: { address: string }) => p.address === address)
+				? genesisValidators.find((p: { address: string }) => p.address === address)
+						.proofOfPossession
+				: DUMMY_PROOF_OF_POSSESSION;
 			return {
 				...value,
 				address,
@@ -144,10 +184,7 @@ export const getValidatorKeys = async (
 				})),
 				blsKey: bls.blsKey.toString('hex'),
 				generatorKey: bls.generatorKey.toString('hex'),
-				proofOfPossession:
-					proofOfPossessions
-						.find(p => p.senderAddress.equals(key))
-						?.params?.proofOfPossession?.toString('hex') ?? DUMMY_PROOF_OF_POSSESSION,
+				proofOfPossession,
 			};
 		}),
 	);
@@ -167,26 +204,34 @@ export const getStakers = async (db: StateDB): Promise<Staker[]> => {
 		value: StakerBuffer;
 	}[];
 	return stakers.map(({ key, value }) => ({
-		address: getLisk32AddressFromAddress(key, 'kly'),
+		address: getKlayr32AddressFromAddress(key),
 		stakes: value.stakes.map(stake => ({
 			...stake,
 			sharingCoefficients: stake.sharingCoefficients.map(coefficient => ({
 				tokenID: coefficient.tokenID.toString('hex'),
 				coefficient: !coefficient.coefficient ? Q96_ZERO : coefficient.coefficient,
 			})),
-			validatorAddress: getLisk32AddressFromAddress(stake.validatorAddress, 'kly'),
+			validatorAddress: getKlayr32AddressFromAddress(stake.validatorAddress),
 		})),
 		pendingUnlocks: value.pendingUnlocks.map(unlock => ({
 			...unlock,
-			validatorAddress: getLisk32AddressFromAddress(unlock.validatorAddress, 'kly'),
+			validatorAddress: getKlayr32AddressFromAddress(unlock.validatorAddress),
 		})),
 	}));
 };
 
-export const processRewards = async (db: StateDB, blockchainDB: Database) => {
-	const { validatorKeys, validatorIndex } = await getValidatorKeys(db, blockchainDB);
+export const processRewards = async (
+	db: StateDB,
+	blockchainDB: Database,
+	networkConstant: NetworkConfigLocal,
+) => {
+	const { validatorKeys, validatorIndex } = await getValidatorKeys(
+		db,
+		blockchainDB,
+		networkConstant,
+	);
 	// Get all user token accounts for token module
-	const { userStore, userKeyIndex } = await getTokenAccounts(db);
+	const { userStore, userKeyIndex } = await getTokenAccounts(db, networkConstant.tokenID);
 	const sortedStakers = await getStakers(db);
 	const claimedStakersIndex: Record<string, number> = {};
 	const sortedClaimedStakers = sortedStakers.map(
@@ -253,12 +298,12 @@ export const processRewards = async (db: StateDB, blockchainDB: Database) => {
 				staked + pendingUnlocked;
 		}
 	});
-	const { totalSupply, sortedUserSubstore } = sortUsersSubstore(userStore);
+	const { sortedTotalSupplySubstore, sortedUserSubstore } = sortUsersSubstore(userStore);
 
 	return {
 		sortedClaimedStakers,
 		sortedUserSubstore,
-		totalSupply,
+		sortedTotalSupplySubstore,
 		validatorKeys,
 	};
 };
@@ -288,12 +333,12 @@ export const createGenesisDataObj = async (
 	});
 
 	const sortedInitValidators = initValidators
-		.slice(0, NUMBER_KLAYR_ACTIVE_VALIDATORS)
+		.slice(0, NUMBER_ACTIVE_VALIDATORS)
 		.sort((a, b) => a.compare(b));
 
 	return {
 		initRounds: POS_INIT_ROUNDS,
-		initValidators: sortedInitValidators.map(entry => getLisk32AddressFromAddress(entry, 'kly')),
+		initValidators: sortedInitValidators.map(entry => getKlayr32AddressFromAddress(entry)),
 	};
 };
 

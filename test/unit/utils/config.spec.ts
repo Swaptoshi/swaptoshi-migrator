@@ -13,11 +13,11 @@
  */
 import * as fs from 'fs-extra';
 import { resolve, join } from 'path';
-import { ApplicationConfig } from 'lisk-framework';
+import { ApplicationConfig } from 'klayr-framework';
 import Command from '@oclif/command';
 import { log, error } from 'console';
 
-import { configV3, configV4 } from '../fixtures/config';
+import { oldConfig, newConfig } from '../fixtures/config';
 import { NETWORK_CONSTANT } from '../../../src/constants';
 import {
 	getNetworkByNetworkID,
@@ -83,8 +83,8 @@ describe('Migrate user configuration', () => {
 	it('should migrate user configuration', async () => {
 		const snapshotHeight = 10815;
 		const config = ((await migrateUserConfig(
-			(configV3 as unknown) as ApplicationConfig,
-			(configV4 as unknown) as ApplicationConfig,
+			(oldConfig as unknown) as ApplicationConfig,
+			(newConfig as unknown) as ApplicationConfig,
 			snapshotHeight as number,
 		)) as unknown) as ApplicationConfig;
 		expect(Object.getOwnPropertyNames(config).length).toBeGreaterThan(0);
@@ -122,7 +122,13 @@ describe('Test networkIdentifier method', () => {
 
 describe('Test resolveConfigDefaultPath method', () => {
 	it('should resolve config filePath when called', async () => {
-		const expectedConfigPath = resolve('..', 'klayr-migrator', 'config', 'testnet', 'config.json');
+		const expectedConfigPath = resolve(
+			'..',
+			'swaptoshi-migrator',
+			'config',
+			'testnet',
+			'config.json',
+		);
 		const configPath = await resolveConfigDefaultPath('testnet');
 		expect(configPath).toBe(expectedConfigPath);
 	});
@@ -130,19 +136,19 @@ describe('Test resolveConfigDefaultPath method', () => {
 
 describe('Test createBackup method', () => {
 	it('should create backup', async () => {
-		await createBackup((configV3 as unknown) as ApplicationConfig);
+		await createBackup((oldConfig as unknown) as ApplicationConfig);
 		expect(fs.existsSync(expectedBackupPath)).toBe(true);
 	});
 });
 
 describe('Test getConfig method', () => {
-	const configPath = join(__dirname, '../../..', 'test/unit/fixtures/lisk-core');
+	const configPath = join(__dirname, '../../..', 'test/unit/fixtures/swaptoshi-core');
 
 	it('should return valid config when custom config is not available', async () => {
 		const config = await getConfig(mockCommand as Command, configPath);
 		const expectedConfig = {
 			system: {
-				dataPath: '~/.lisk',
+				dataPath: '~/.klayr',
 			},
 			rpc: {
 				modes: ['ws'],
@@ -155,7 +161,7 @@ describe('Test getConfig method', () => {
 					fromFile: './config/genesis_block.blob',
 				},
 				blockTime: 5,
-				chainID: '00000000',
+				chainID: '00555555',
 				maxTransactionsSize: 15360,
 				minimumCertifyHeight: 1,
 			},

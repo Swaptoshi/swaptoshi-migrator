@@ -13,8 +13,8 @@
  */
 import { homedir } from 'os';
 import { isAbsolute, join } from 'path';
-import { getFiles } from './fs';
-import { BACKUP_DIR, DEFAULT_LISK_CORE_PATH } from '../constants';
+import { BACKUP_DIR, DEFAULT_SWAPTOSHI_CORE_PATH } from '../constants';
+// import { getFiles } from './fs';
 
 export const resolveAbsolutePath = (path: string) => {
 	if (isAbsolute(path)) {
@@ -29,10 +29,10 @@ export const resolveAbsolutePath = (path: string) => {
 };
 
 export const verifyOutputPath = (_outputPath: string): void | Error => {
-	const absLiskCorePath = resolveAbsolutePath(DEFAULT_LISK_CORE_PATH);
+	const absSwaptoshiCorePath = resolveAbsolutePath(DEFAULT_SWAPTOSHI_CORE_PATH);
 	const absOutputPath = resolveAbsolutePath(_outputPath);
 
-	if (absOutputPath.startsWith(absLiskCorePath)) {
+	if (absOutputPath.startsWith(absSwaptoshiCorePath)) {
 		throw new Error(
 			`Output path '${_outputPath}' is not allowed. Please restart the migrator with a different output path.`,
 		);
@@ -43,11 +43,13 @@ export const resolveSnapshotPath = async (
 	useSnapshot: boolean,
 	snapshotPath: string,
 	dataDir: string,
-	liskCoreV4DataPath: string,
+	swaptoshiCoreDataPath: string,
 ) => {
-	if (!useSnapshot) return join(liskCoreV4DataPath, BACKUP_DIR);
+	if (!useSnapshot) return join(swaptoshiCoreDataPath, BACKUP_DIR);
 	if (snapshotPath && !snapshotPath.endsWith('.tar.gz')) return snapshotPath;
 
-	const [snapshotDirNameExtracted] = (await getFiles(dataDir)) as string[];
-	return join(dataDir, snapshotDirNameExtracted);
+	return dataDir;
+
+	// const [snapshotDirNameExtracted] = (await getFiles(dataDir)) as string[];
+	// return join(dataDir, snapshotDirNameExtracted);
 };

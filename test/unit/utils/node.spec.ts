@@ -156,7 +156,7 @@ describe('Test getFinalConfigPath method', () => {
 	});
 });
 
-describe('Test isLiskCoreV4Running method', () => {
+describe('Test isSwaptoshiCoreRunning method', () => {
 	it('should return true when node is running', async () => {
 		jest.mock(clientFilePath, () => ({
 			getAPIClient: jest.fn().mockResolvedValueOnce({
@@ -165,8 +165,8 @@ describe('Test isLiskCoreV4Running method', () => {
 		}));
 
 		/* eslint-disable-next-line global-require, @typescript-eslint/no-var-requires */
-		const { isLiskCoreV4Running } = require('../../../src/utils/node');
-		const response = await isLiskCoreV4Running();
+		const { isSwaptoshiCoreRunning } = require('../../../src/utils/node');
+		const response = await isSwaptoshiCoreRunning();
 
 		expect(response).toBe(true);
 	});
@@ -179,8 +179,8 @@ describe('Test isLiskCoreV4Running method', () => {
 		}));
 
 		/* eslint-disable-next-line global-require, @typescript-eslint/no-var-requires */
-		const { isLiskCoreV4Running } = require('../../../src/utils/node');
-		const response = await isLiskCoreV4Running();
+		const { isSwaptoshiCoreRunning } = require('../../../src/utils/node');
+		const response = await isSwaptoshiCoreRunning();
 
 		expect(response).toBe(false);
 	});

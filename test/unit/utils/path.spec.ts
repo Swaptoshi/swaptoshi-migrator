@@ -15,7 +15,7 @@
 import { homedir } from 'os';
 import { join } from 'path';
 
-import { DEFAULT_LISK_CORE_PATH } from '../../../src/constants';
+import { DEFAULT_SWAPTOSHI_CORE_PATH } from '../../../src/constants';
 import {
 	resolveAbsolutePath,
 	verifyOutputPath,
@@ -50,15 +50,15 @@ describe('Test resolveAbsolutePath method', () => {
 });
 
 describe('Test verifyOutputPath method', () => {
-	it('should throw error when user provides the output path same as the default Lisk Core data directory', async () => {
-		expect(() => verifyOutputPath(DEFAULT_LISK_CORE_PATH)).toThrow(
-			`Output path '${DEFAULT_LISK_CORE_PATH}' is not allowed. Please restart the migrator with a different output path.`,
+	it('should throw error when user provides the output path same as the default Swaptoshi Core data directory', async () => {
+		expect(() => verifyOutputPath(DEFAULT_SWAPTOSHI_CORE_PATH)).toThrow(
+			`Output path '${DEFAULT_SWAPTOSHI_CORE_PATH}' is not allowed. Please restart the migrator with a different output path.`,
 		);
 	});
 
-	it('should throw error when user provides the output path starting with the default Lisk Core data directory', async () => {
-		expect(() => verifyOutputPath(`${DEFAULT_LISK_CORE_PATH}/output`)).toThrow(
-			`Output path '${DEFAULT_LISK_CORE_PATH}/output' is not allowed. Please restart the migrator with a different output path.`,
+	it('should throw error when user provides the output path starting with the default Swaptoshi Core data directory', async () => {
+		expect(() => verifyOutputPath(`${DEFAULT_SWAPTOSHI_CORE_PATH}/output`)).toThrow(
+			`Output path '${DEFAULT_SWAPTOSHI_CORE_PATH}/output' is not allowed. Please restart the migrator with a different output path.`,
 		);
 	});
 
@@ -80,7 +80,7 @@ describe('Test verifyOutputPath method', () => {
 
 describe('Test resolveSnapshotPath method', () => {
 	const dataDir = join(__dirname, '../../..', 'test/unit/fixtures/data');
-	const liskCoreV4DataPath = '~/.lisk/lisk-core';
+	const swaptoshiCoreDataPath = '~/.klayr/swaptoshi-core';
 	const inputSnapshotPath = join(__dirname, '../../..', 'test/unit/fixtures/data');
 
 	it('should return valid snapshot path when useSnapshot is false', async () => {
@@ -89,9 +89,9 @@ describe('Test resolveSnapshotPath method', () => {
 			useSnapshot,
 			inputSnapshotPath,
 			dataDir,
-			liskCoreV4DataPath,
+			swaptoshiCoreDataPath,
 		);
-		const expectedResult = '~/.lisk/lisk-core/backup';
+		const expectedResult = '~/.klayr/swaptoshi-core/backup';
 		expect(snapshotPath).toBe(expectedResult);
 	});
 
@@ -101,7 +101,7 @@ describe('Test resolveSnapshotPath method', () => {
 			useSnapshot,
 			inputSnapshotPath,
 			dataDir,
-			liskCoreV4DataPath,
+			swaptoshiCoreDataPath,
 		);
 		expect(snapshotPath).toBe(inputSnapshotPath);
 	});
@@ -112,9 +112,10 @@ describe('Test resolveSnapshotPath method', () => {
 			useSnapshot,
 			(undefined as unknown) as string,
 			dataDir,
-			liskCoreV4DataPath,
+			swaptoshiCoreDataPath,
 		);
-		const expectedResult = join(dataDir, 'blockchain.db');
+		// const expectedResult = join(dataDir, 'blockchain.db');
+		const expectedResult = join(dataDir, '');
 		expect(snapshotPath).toBe(expectedResult);
 	});
 });

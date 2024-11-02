@@ -13,13 +13,13 @@
  */
 import { DEFAULT_HOST, DEFAULT_PORT_P2P, DEFAULT_PORT_RPC } from '../../../src/constants';
 
-export const configV3 = {
-	rootPath: '~/.lisk',
+export const oldConfig = {
+	rootPath: '~/.klayr',
 	networkVersion: '3.1',
 	label: 'devnet',
 	genesisConfig: {
 		blockTime: 10,
-		communityIdentifier: 'Lisk',
+		communityIdentifier: 'Klayr',
 		maxPayloadLength: 15360,
 		bftThreshold: 68,
 		minFeePerByte: 1000,
@@ -2348,9 +2348,9 @@ export const configV3 = {
 	plugins: {},
 };
 
-export const configV4 = {
+export const newConfig = {
 	system: {
-		dataPath: '~/.lisk',
+		dataPath: '~/.klayr',
 		keepEventsForHeights: 300,
 		logLevel: 'info',
 		enableMetrics: false,

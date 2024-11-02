@@ -13,10 +13,10 @@
  */
 import { tokenGenesisStoreSchema } from 'klayr-framework';
 
-import { userStoreSchema } from 'lisk-framework/dist-node/modules/token/stores/user';
+import { userStoreSchema } from 'klayr-framework/dist-node/modules/token/stores/user';
 import { StateDB } from '@liskhq/lisk-db';
-import { escrowStoreSchema } from 'lisk-framework/dist-node/modules/token/stores/escrow';
-import { getLisk32AddressFromAddress } from '@liskhq/lisk-cryptography/dist-node/address';
+import { escrowStoreSchema } from 'klayr-framework/dist-node/modules/token/stores/escrow';
+import { getKlayr32AddressFromAddress } from '@klayr/cryptography/dist-node/address';
 import {
 	MODULE_NAME_TOKEN,
 	DB_PREFIX_TOKEN_USER_STORE,
@@ -34,7 +34,7 @@ import {
 	UserSubstoreEntry,
 } from '../types';
 import { getStateStore } from '../utils/store';
-import { getAdditionalAccounts, getTokenIDKly } from '../utils';
+import { getAdditionalAccounts, getTokenIDSwx } from '../utils';
 
 const AMOUNT_ZERO = BigInt('0');
 
@@ -63,6 +63,7 @@ export const getEscrowTokens = async (db: StateDB): Promise<EscrowSubstoreEntry[
 
 export const getTokenAccounts = async (
 	db: StateDB,
+	tokenID: string,
 ): Promise<{ userStore: UserSubstore[]; userKeyIndex: KeyIndex }> => {
 	const tokenUserStore = getStateStore(db, DB_PREFIX_TOKEN_USER_STORE);
 	const accounts = (await tokenUserStore.iterateWithSchema(
@@ -74,7 +75,9 @@ export const getTokenAccounts = async (
 	)) as { key: Buffer; value: object }[];
 	const userKeyIndex: KeyIndex = {};
 	const userStore = accounts.map((account, index) => {
-		userKeyIndex[getLisk32AddressFromAddress(account.key.subarray(0, 20), 'kly')] = index;
+		if (account.key.subarray(20).toString('hex') === tokenID) {
+			userKeyIndex[getKlayr32AddressFromAddress(account.key.subarray(0, 20))] = index;
+		}
 		return {
 			address: account.key.subarray(0, 20),
 			...account.value,
@@ -110,14 +113,15 @@ export const sortUsersSubstore = (
 	users: UserSubstore[],
 ): {
 	sortedUserSubstore: UserSubstoreEntry[];
-	totalSupply: bigint;
+	sortedTotalSupplySubstore: SupplySubstoreEntry[];
 } => {
-	let totalSupply = AMOUNT_ZERO;
+	const swxChainID = getTokenIDSwx().substring(0, 8);
+	const totalSupplySubstoreObj: Record<string, bigint> = {};
 	const additionalAccounts = getAdditionalAccounts();
 	additionalAccounts.forEach(({ address, balance }) => {
 		users.push({
 			address,
-			tokenID: Buffer.from(getTokenIDKly(), 'hex'),
+			tokenID: Buffer.from(getTokenIDSwx(), 'hex'),
 			availableBalance: balance,
 			lockedBalances: [],
 		});
@@ -129,15 +133,21 @@ export const sortUsersSubstore = (
 			a.address.equals(b.address) ? a.tokenID.compare(b.tokenID) : a.address.compare(b.address),
 		)
 		.map(({ address: addr, ...entry }) => {
-			totalSupply += entry.availableBalance;
-			totalSupply += entry.lockedBalances.reduce(
-				(accumulator: bigint, lockedBalance: { amount: bigint }) =>
-					accumulator + BigInt(lockedBalance.amount),
-				AMOUNT_ZERO,
-			);
+			if (entry.tokenID.toString('hex').startsWith(swxChainID)) {
+				if (!totalSupplySubstoreObj[entry.tokenID.toString('hex')]) {
+					totalSupplySubstoreObj[entry.tokenID.toString('hex')] = AMOUNT_ZERO;
+				}
+
+				totalSupplySubstoreObj[entry.tokenID.toString('hex')] += entry.availableBalance;
+				totalSupplySubstoreObj[entry.tokenID.toString('hex')] += entry.lockedBalances.reduce(
+					(accumulator: bigint, lockedBalance: { amount: bigint }) =>
+						accumulator + BigInt(lockedBalance.amount),
+					AMOUNT_ZERO,
+				);
+			}
 			return {
 				...entry,
-				address: getLisk32AddressFromAddress(addr, 'kly'),
+				address: getKlayr32AddressFromAddress(addr),
 				tokenID: entry.tokenID.toString('hex'),
 				availableBalance: entry.availableBalance.toString(),
 				lockedBalances: entry.lockedBalances.map(({ module, amount }) => ({
@@ -147,8 +157,19 @@ export const sortUsersSubstore = (
 			};
 		});
 
+	const sortedTotalSupplySubstore: SupplySubstoreEntry[] = Object.keys(totalSupplySubstoreObj)
+		.sort((a, b) => {
+			if (a > b) return 1;
+			if (b > a) return -1;
+			return 0;
+		})
+		.map(t => ({
+			tokenID: t,
+			totalSupply: totalSupplySubstoreObj[t].toString(),
+		}));
+
 	return {
 		sortedUserSubstore,
-		totalSupply,
+		sortedTotalSupplySubstore,
 	};
 };

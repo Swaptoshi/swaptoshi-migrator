@@ -13,31 +13,32 @@
  */
 
 import { Database, StateDB } from '@liskhq/lisk-db';
+import * as utils from '@klayr/utils';
 import { SupplySubstoreEntry } from '../../../src/types';
 
 import { getEscrowTokens, getTokenModuleEntry } from '../../../src/assets/token';
-import { MODULE_NAME_TOKEN } from '../../../src/constants';
+import { MODULE_NAME_TOKEN, NETWORK_CONSTANT } from '../../../src/constants';
 import { processRewards } from '../../../src/assets/pos';
+import { setTokenIDSwxByNetID } from '../../../src/utils';
 
 describe('Build assets/token', () => {
 	const db = new StateDB('test/unit/fixtures/data/state.db', { readonly: true });
 	const blockchainDB = new Database('test/unit/fixtures/data/blockchain.db', { readonly: true });
 	it('should create token module asset', async () => {
-		const { sortedUserSubstore, totalSupply } = await processRewards(db, blockchainDB);
+		setTokenIDSwxByNetID('01555555');
 
-		const escrowSubstore = await getEscrowTokens(db);
-		const AMOUNT_ZERO = BigInt('0');
-		const totalEscrow = escrowSubstore.reduce(
-			(accumulator: bigint, escrow: { amount: bigint }) => accumulator + BigInt(escrow.amount),
-			AMOUNT_ZERO,
+		const networkConstant = utils.objects.cloneDeep(NETWORK_CONSTANT['01555555']);
+		networkConstant.tokenID = '0100000000000000';
+
+		const { sortedUserSubstore, sortedTotalSupplySubstore } = await processRewards(
+			db,
+			blockchainDB,
+			networkConstant,
 		);
 
-		const supplySubstoreEntries: SupplySubstoreEntry[] = [
-			{
-				tokenID: '01000000000000',
-				totalSupply: String(totalSupply + totalEscrow),
-			},
-		];
+		const escrowSubstore = await getEscrowTokens(db);
+
+		const supplySubstoreEntries: SupplySubstoreEntry[] = sortedTotalSupplySubstore;
 
 		const response = await getTokenModuleEntry(
 			sortedUserSubstore,

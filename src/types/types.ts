@@ -11,7 +11,7 @@
  *
  * Removal or modification of this copyright notice is prohibited.
  */
-import { Schema } from '@liskhq/lisk-codec';
+import { Schema } from '@klayr/codec/';
 import { StakeSharingCoefficient } from 'klayr-framework/dist-node/modules/pos/types';
 
 export type KeyIndex = Record<string, number>;
@@ -258,6 +258,7 @@ export interface NetworkConfigLocal {
 	name: string;
 	tokenID: string;
 	prevSnapshotBlockHeight: number;
+	updatedConfigSubstore: { module: string; data: Buffer }[];
 	additionalAccounts: { address: Buffer; balance: bigint }[];
 }
 
@@ -283,3 +284,11 @@ export type BLSTransaction = {
 		proofOfPossession: Buffer;
 	};
 };
+
+export interface GovernableConfigStoreData {
+	data: Buffer;
+}
+
+export interface GovernableConfigSubstoreEntry {
+	data: string;
+}

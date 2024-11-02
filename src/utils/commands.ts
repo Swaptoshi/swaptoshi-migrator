@@ -39,14 +39,14 @@ export const getCommandsToExecPostMigration = async (
 			);
 
 			commandsToExecute.push(
-				'klayr-core keys:import --file-path {path_to/your_keys_file.json}',
-				`klayr-core endpoint:invoke random_setHashOnion '{ "address":"${forgingStatus.address}"}'`,
-				`klayr-core endpoint:invoke generator_setStatus '{ "address":"${
+				'swaptoshi-core keys:import --file-path {path_to/your_keys_file.json}',
+				`swaptoshi-core endpoint:invoke random_setHashOnion '{ "address":"${forgingStatus.address}"}'`,
+				`swaptoshi-core endpoint:invoke generator_setStatus '{ "address":"${
 					forgingStatus.address
 				}", "height": ${forgingStatus.height ?? snapshotHeight}, "maxHeightGenerated":  ${
 					forgingStatus.maxHeightGenerated ?? snapshotHeight
 				}, "maxHeightPrevoted":  ${forgingStatus.maxHeightPrevoted ?? snapshotHeight} }' --pretty`,
-				`klayr-core generator:enable ${forgingStatus.address} --use-status-value`,
+				`swaptoshi-core generator:enable ${forgingStatus.address} --use-status-value`,
 			);
 
 			commandsToExecute.push('\n', '-----------------------------------------------------', '\n');

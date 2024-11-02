@@ -14,24 +14,23 @@
 import util from 'util';
 import * as fs from 'fs-extra';
 import { join, resolve } from 'path';
-import { ApplicationConfig, PartialApplicationConfig } from 'lisk-framework';
+import { ApplicationConfig, PartialApplicationConfig } from 'klayr-framework';
 import { Database, StateDB } from '@liskhq/lisk-db';
 import * as semver from 'semver';
 import { Command, flags as flagsParser } from '@oclif/command';
 import cli from 'cli-ux';
-import { BlockHeader } from '@liskhq/lisk-chain';
+import { BlockHeader } from '@klayr/chain';
 import {
 	NETWORK_CONSTANT,
 	ROUND_LENGTH,
 	SNAPSHOT_DIR,
-	MIN_SUPPORTED_LISK_CORE_VERSION,
-	DEFAULT_LISK_CORE_PATH,
+	MIN_SUPPORTED_SWAPTOSHI_CORE_VERSION,
+	DEFAULT_SWAPTOSHI_CORE_PATH,
 	ERROR_CODE,
 	FILE_NAME,
-	LISK_V4_BACKUP_DATA_DIR,
+	SWAPTOSHI_BACKUP_DATA_DIR,
 	LEGACY_DB_PATH,
 	DEFAULT_DATA_DIR,
-	DEFAULT_KLAYR_CORE_PATH,
 } from './constants';
 import { getAPIClient } from './client';
 import {
@@ -40,9 +39,8 @@ import {
 	createBackup,
 	writeConfig,
 	validateConfig,
-	setTokenIDKlyByNetID,
+	setTokenIDSwxByNetID,
 	setPrevSnapshotBlockHeightByNetID,
-	getTokenIDKly,
 	writeGenesisAssets,
 	createGenesisBlock,
 	writeGenesisBlock,
@@ -56,10 +54,9 @@ import { captureForgingStatusAtSnapshotHeight } from './events';
 import { CreateAsset } from './createAsset';
 import { NetworkConfigLocal } from './types';
 import {
-	startKlayrCore,
-	isLiskCoreV4Running,
-	getKlayrCoreStartCommand,
-	installKlayrCore,
+	startSwaptoshiCore,
+	isSwaptoshiCoreRunning,
+	getSwaptoshiCoreStartCommand,
 } from './utils/node';
 import { resolveAbsolutePath, resolveSnapshotPath, verifyOutputPath } from './utils/path';
 import { execAsync } from './utils/process';
@@ -70,9 +67,10 @@ import { getChainId } from './utils/network';
 import { extractTarBall } from './utils/fs';
 import { downloadAndExtract } from './utils/download';
 
-let configCoreV4: PartialApplicationConfig;
-class KlayrMigrator extends Command {
-	public static description = 'Migrate Lisk Core to Klayr Core';
+let swaptoshiConfig: PartialApplicationConfig;
+
+class SwaptoshiMigrator extends Command {
+	public static description = 'Migrate Swaptoshi Core';
 
 	public static flags = {
 		version: flagsParser.version({ char: 'v' }),
@@ -81,13 +79,13 @@ class KlayrMigrator extends Command {
 		output: flagsParser.string({
 			char: 'o',
 			required: false,
-			description: `File path to write the genesis block. If not provided, it will default to cwd/output/{v4_networkIdentifier}/genesis_block.blob. Do not use any value starting with the default data path reserved for Lisk Core: '${DEFAULT_LISK_CORE_PATH}'.`,
+			description: `File path to write the genesis block. If not provided, it will default to cwd/output/{networkIdentifier}/genesis_block.blob. Do not use any value starting with the default data path reserved for Swaptoshi Core: '${DEFAULT_SWAPTOSHI_CORE_PATH}'.`,
 		}),
-		'lisk-core-data-path': flagsParser.string({
+		'data-path': flagsParser.string({
 			char: 'd',
 			required: false,
 			description:
-				'Path where the Lisk Core v4.x instance is running. When not supplied, defaults to the default data directory for Lisk Core.',
+				'Path where the Swaptoshi Core instance is running. When not supplied, defaults to the default data directory for Swaptoshi Core.',
 		}),
 		'snapshot-height': flagsParser.integer({
 			char: 's',
@@ -99,7 +97,7 @@ class KlayrMigrator extends Command {
 		config: flagsParser.string({
 			char: 'c',
 			required: false,
-			description: 'Custom configuration file path for Lisk Core v4.0.x.',
+			description: 'Custom configuration file path for Swaptoshi Core',
 		}),
 		'auto-migrate-config': flagsParser.boolean({
 			required: false,
@@ -107,11 +105,11 @@ class KlayrMigrator extends Command {
 			description: 'Migrate user configuration automatically. Defaults to false.',
 			default: false,
 		}),
-		'auto-start-klayr-core-v4': flagsParser.boolean({
+		'auto-start-swaptoshi-core': flagsParser.boolean({
 			required: false,
-			env: 'AUTO_START_KLAYR_CORE',
+			env: 'AUTO_START_SWAPTOSHI_CORE',
 			description:
-				'Start Klayr Core v4 automatically. Defaults to false. When using this flag, kindly open another terminal window to stop Lisk Core v4.0.x for when the migrator prompts.',
+				'Start Swaptoshi Core automatically. Defaults to false. When using this flag, kindly open another terminal window to stop Swaptoshi Core for when the migrator prompts.',
 			default: false,
 		}),
 		'page-size': flagsParser.integer({
@@ -144,27 +142,21 @@ class KlayrMigrator extends Command {
 			description:
 				"Network to be considered for the migration. Depends on the '--snapshot-path' flag.",
 			options: ['mainnet', 'testnet', 'devnet'],
-			exclusive: [
-				'lisk-core-data-path',
-				'config',
-				'auto-migrate-config',
-				'auto-start-lisk-core-v4',
-				'auto-start-klayr-core-v4',
-			],
+			exclusive: ['data-path', 'config', 'auto-migrate-config', 'auto-start-swaptoshi-core'],
 		}),
 	};
 
 	public async run(): Promise<void> {
 		const startTime = Date.now();
-		const { flags } = this.parse(KlayrMigrator);
-		const liskCoreV4DataPath = resolveAbsolutePath(
-			flags['lisk-core-data-path'] ?? DEFAULT_LISK_CORE_PATH,
+		const { flags } = this.parse(SwaptoshiMigrator);
+		const swaptoshiCoreDataPath = resolveAbsolutePath(
+			flags['data-path'] ?? DEFAULT_SWAPTOSHI_CORE_PATH,
 		);
 		const outputPath = flags.output ?? join(__dirname, '..', 'output');
 		const snapshotHeight = flags['snapshot-height'];
 		const customConfigPath = flags.config;
 		const autoMigrateUserConfig = flags['auto-migrate-config'] ?? false;
-		const autoStartKlayrCoreV4 = flags['auto-start-klayr-core-v4'];
+		const autoStartSwaptoshiCore = flags['auto-start-swaptoshi-core'];
 		const snapshotPath = flags['snapshot-path']
 			? resolveAbsolutePath(flags['snapshot-path'])
 			: (flags['snapshot-path'] as string);
@@ -187,7 +179,7 @@ class KlayrMigrator extends Command {
 
 		verifyOutputPath(outputPath);
 
-		const chainId: string = await getChainId(network, liskCoreV4DataPath);
+		const chainId: string = await getChainId(network, swaptoshiCoreDataPath);
 		const networkConstant: NetworkConfigLocal = NETWORK_CONSTANT[chainId];
 		const outputDir: string = flags.output ? outputPath : `${outputPath}/${chainId}`;
 
@@ -208,15 +200,15 @@ class KlayrMigrator extends Command {
 					cli.action.stop(`Successfully extracted snapshot to ${dataDir}`);
 				}
 			} else {
-				const client = await getAPIClient(liskCoreV4DataPath);
+				const client = await getAPIClient(swaptoshiCoreDataPath);
 				const nodeInfo = await client.node.getNodeInfo();
 				const { version: appVersion } = nodeInfo;
 
 				cli.action.start('Verifying if backup height from node config matches snapshot height');
-				const config = await getConfig(this, liskCoreV4DataPath, customConfigPath);
+				const config = await getConfig(this, swaptoshiCoreDataPath, customConfigPath);
 				if (snapshotHeight !== config.system.backup.height) {
 					this.error(
-						`Lisk Core v4 backup height mismatch. Actual: ${config.system.backup.height}, Expected: ${snapshotHeight}.`,
+						`Swaptoshi Core backup height mismatch. Actual: ${config.system.backup.height}, Expected: ${snapshotHeight}.`,
 					);
 				}
 				cli.action.stop('Snapshot height matches backup height');
@@ -235,7 +227,7 @@ class KlayrMigrator extends Command {
 				// This information is necessary for the node operators to enable generator post-migration without getting PoM'd
 				captureForgingStatusAtSnapshotHeight(this, client, snapshotHeight, outputDir);
 
-				if (autoStartKlayrCoreV4) {
+				if (autoStartSwaptoshiCore) {
 					if (!networkConstant) {
 						this.error(
 							`Unknown network detected. No NETWORK_CONSTANT defined for networkID: ${chainId}.`,
@@ -243,31 +235,31 @@ class KlayrMigrator extends Command {
 					}
 				}
 
-				cli.action.start('Verifying Lisk Core version');
-				const isLiskCoreVersionValid = semver.valid(appVersion);
-				if (isLiskCoreVersionValid === null) {
+				cli.action.start('Verifying Swaptoshi Core version');
+				const isSwaptoshiCoreVersionValid = semver.valid(appVersion);
+				if (isSwaptoshiCoreVersionValid === null) {
 					this.error(
-						`Invalid Lisk Core version detected: ${appVersion}. Minimum supported version is ${MIN_SUPPORTED_LISK_CORE_VERSION}.`,
+						`Invalid Swaptoshi Core version detected: ${appVersion}. Minimum supported version is ${MIN_SUPPORTED_SWAPTOSHI_CORE_VERSION}.`,
 					);
 				}
 
-				if (semver.lt(appVersion, MIN_SUPPORTED_LISK_CORE_VERSION)) {
+				if (semver.lt(appVersion, MIN_SUPPORTED_SWAPTOSHI_CORE_VERSION)) {
 					this.error(
-						`Klayr Migrator is not compatible with Lisk Core version ${appVersion}. Minimum supported version is ${MIN_SUPPORTED_LISK_CORE_VERSION}.`,
+						`Swaptoshi Migrator is not compatible with Swaptoshi Core version ${appVersion}. Minimum supported version is ${MIN_SUPPORTED_SWAPTOSHI_CORE_VERSION}.`,
 					);
 				}
 				cli.action.stop(`${appVersion} detected`);
 
 				await observeChainHeight({
 					label: 'Waiting for snapshot height to be finalized',
-					liskCoreV4DataPath,
+					swaptoshiCoreDataPath,
 					height: snapshotHeight,
 					delay: 500,
 					isFinal: true,
 				});
 			}
 
-			setTokenIDKlyByNetID(chainId);
+			setTokenIDSwxByNetID(chainId);
 			setPrevSnapshotBlockHeightByNetID(chainId);
 			setAdditionalAccountsByChainID(chainId);
 
@@ -277,7 +269,7 @@ class KlayrMigrator extends Command {
 				useSnapshot,
 				snapshotPath,
 				dataDir,
-				liskCoreV4DataPath,
+				swaptoshiCoreDataPath,
 			);
 			const db = new StateDB(`${snapshotDirPath}/state.db`);
 			const blockchainDB = new Database(`${snapshotDirPath}/blockchain.db`);
@@ -286,13 +278,12 @@ class KlayrMigrator extends Command {
 			// Create genesis assets
 			cli.action.start('Creating genesis assets');
 			const createAsset = new CreateAsset(db, blockchainDB);
-			const tokenID = getTokenIDKly();
-			const genesisAssets = await createAsset.init(snapshotHeight, tokenID);
+			const genesisAssets = await createAsset.init(snapshotHeight, networkConstant);
 			cli.action.stop();
 
 			// Create an app instance for creating genesis block
 			const defaultConfigFilePath = await resolveConfigDefaultPath(networkConstant.name);
-			const defaultConfigV4 = await fs.readJSON(defaultConfigFilePath);
+			const newConfig = await fs.readJSON(defaultConfigFilePath);
 
 			cli.action.start(`Exporting genesis block to the path ${outputDir}`);
 			await writeGenesisAssets(genesisAssets, outputDir);
@@ -300,23 +291,23 @@ class KlayrMigrator extends Command {
 
 			if (autoMigrateUserConfig && !useSnapshot) {
 				// User specified custom config file
-				const configV4: ApplicationConfig = customConfigPath
-					? await getConfig(this, liskCoreV4DataPath, customConfigPath)
-					: await getConfig(this, liskCoreV4DataPath);
+				const oldConfig: ApplicationConfig = customConfigPath
+					? await getConfig(this, swaptoshiCoreDataPath, customConfigPath)
+					: await getConfig(this, swaptoshiCoreDataPath);
 				cli.action.start('Creating backup for old config');
-				await createBackup(configV4);
+				await createBackup(oldConfig);
 				cli.action.stop();
 
 				cli.action.start('Migrating user configuration');
-				const migratedConfigV4 = (await migrateUserConfig(
-					configV4,
-					defaultConfigV4,
+				const migratedConfig = (await migrateUserConfig(
+					oldConfig,
+					newConfig,
 					snapshotHeight,
 				)) as ApplicationConfig;
 				cli.action.stop();
 
 				cli.action.start('Validating migrated user configuration');
-				const isValidConfig = await validateConfig(migratedConfigV4);
+				const isValidConfig = await validateConfig(migratedConfig);
 				cli.action.stop();
 
 				if (!isValidConfig) {
@@ -327,16 +318,17 @@ class KlayrMigrator extends Command {
 				}
 
 				cli.action.start(`Exporting user configuration to the path: ${outputDir}`);
-				await writeConfig(migratedConfigV4, outputDir);
+				await writeConfig(migratedConfig, outputDir);
 				cli.action.stop();
 
-				// Set configCoreV4 to the migrated Core config
-				configCoreV4 = migratedConfigV4 as PartialApplicationConfig;
+				swaptoshiConfig = migratedConfig as PartialApplicationConfig;
 			}
 
-			cli.action.start('Installing Klayr Core v4');
-			await installKlayrCore();
-			cli.action.stop();
+			// NOTE: since we are using same core version, this will be disabled
+
+			// cli.action.start('Installing Swaptoshi Core');
+			// await installSwaptoshiCore();
+			// cli.action.stop();
 
 			cli.action.start('Creating genesis block');
 			const blockHeaderAtSnapshotHeight = (await getBlockHeaderByHeight(
@@ -358,53 +350,55 @@ class KlayrMigrator extends Command {
 			cli.action.stop();
 
 			if (!useSnapshot) {
-				if (autoStartKlayrCoreV4) {
+				if (autoStartSwaptoshiCore) {
 					try {
 						if (!autoMigrateUserConfig) {
-							configCoreV4 = defaultConfigV4;
+							swaptoshiConfig = newConfig;
 						}
 
-						cli.action.start('Copying genesis block to the Klayr Core executable directory');
-						const klayrCoreExecPath = await execAsync('which klayr-core');
-						const klayrCoreV4ConfigPath = resolve(
-							klayrCoreExecPath,
+						cli.action.start('Copying genesis block to the Swaptoshi Core executable directory');
+						const swaptoshiCoreExecPath = await execAsync('which swaptoshi-core');
+						const swaptoshiCoreConfigPath = resolve(
+							swaptoshiCoreExecPath,
 							'../..',
-							`lib/node_modules/klayr-core/config/${networkConstant.name}`,
+							`lib/node_modules/swaptoshi-core/config/${networkConstant.name}`,
 						);
 
 						await copyGenesisBlock(
 							`${outputDir}/genesis_block.blob`,
-							`${klayrCoreV4ConfigPath}/genesis_block.blob`,
+							`${swaptoshiCoreConfigPath}/genesis_block.blob`,
 						);
-						this.log(`Genesis block has been copied to: ${klayrCoreV4ConfigPath}.`);
+						this.log(`Genesis block has been copied to: ${swaptoshiCoreConfigPath}.`);
 						cli.action.stop();
 
-						// Ask user to manually stop Lisk Core v3 and continue
-						const isLiskCoreV4Stopped = await cli.confirm(
-							"Please stop Lisk Core to continue. Type 'yes' and press Enter when you stopped Lisk Core. [yes/no]",
+						// Ask user to manually stop Swaptoshi Core and continue
+						const isSwaptoshiCoreStopped = await cli.confirm(
+							"Please stop Swaptoshi Core to continue. Type 'yes' and press Enter when you stopped Swaptoshi Core. [yes/no]",
 						);
 
-						if (isLiskCoreV4Stopped) {
+						if (isSwaptoshiCoreStopped) {
 							let numTriesLeft = 3;
 							while (numTriesLeft) {
 								numTriesLeft -= 1;
 
-								const isCoreV4Running = await isLiskCoreV4Running(liskCoreV4DataPath);
-								if (!isCoreV4Running) break;
+								const isSwaptoshiNodeRunning = await isSwaptoshiCoreRunning(swaptoshiCoreDataPath);
+								if (!isSwaptoshiNodeRunning) break;
 
 								if (numTriesLeft >= 0) {
 									const isStopReconfirmed = await cli.confirm(
-										"Lisk Core still running. Please stop the node, type 'yes' to proceed and 'no' to exit. [yes/no]",
+										"Swaptoshi Core still running. Please stop the node, type 'yes' to proceed and 'no' to exit. [yes/no]",
 									);
 									if (!isStopReconfirmed) {
 										throw new Error(
-											`Cannot proceed with Klayr Core auto-start. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Klayr Core v4 data directory (e.g: ${DEFAULT_KLAYR_CORE_PATH}/data/legacy.db/). Exiting!!!`,
+											`Cannot proceed with Swaptoshi Core auto-start. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Swaptohsi Core data directory (e.g: ${DEFAULT_SWAPTOSHI_CORE_PATH}/data/legacy.db/). Exiting!!!`,
 										);
 									} else if (numTriesLeft === 0 && isStopReconfirmed) {
-										const isCoreV4StillRunning = await isLiskCoreV4Running(liskCoreV4DataPath);
-										if (isCoreV4StillRunning) {
+										const isSwaptoshiCoreStillRunning = await isSwaptoshiCoreRunning(
+											swaptoshiCoreDataPath,
+										);
+										if (isSwaptoshiCoreStillRunning) {
 											throw new Error(
-												`Cannot auto-start Klayr Core as Lisk Core is still running. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Klayr Core v4 data directory (e.g: ${DEFAULT_KLAYR_CORE_PATH}/data/legacy.db/). Exiting!!!`,
+												`Cannot auto-start Swaptoshi Core as Swaptoshi Core is still running. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Swaptoshi Core data directory (e.g: ${DEFAULT_SWAPTOSHI_CORE_PATH}/data/legacy.db/). Exiting!!!`,
 											);
 										}
 									}
@@ -412,60 +406,60 @@ class KlayrMigrator extends Command {
 							}
 
 							const isUserConfirmed = await cli.confirm(
-								`Start Klayr Core with the following configuration? [yes/no]
-							${util.inspect(configCoreV4, false, 3)} `,
+								`Start Swaptoshi Core with the following configuration? [yes/no]
+							${util.inspect(swaptoshiConfig, false, 3)} `,
 							);
 
 							if (isUserConfirmed) {
-								cli.action.start('Starting Klayr Core');
+								cli.action.start('Starting Swaptoshi Core');
 								const networkName = networkConstant.name;
-								await startKlayrCore(
+								await startSwaptoshiCore(
 									this,
-									liskCoreV4DataPath,
-									configCoreV4,
+									swaptoshiCoreDataPath,
+									swaptoshiConfig,
 									networkName,
 									outputDir,
 								);
 								this.log(
-									`Started Klayr Core v4 at default data directory ('${DEFAULT_KLAYR_CORE_PATH}').`,
+									`Started Swaptoshi Core at default data directory ('${DEFAULT_SWAPTOSHI_CORE_PATH}').`,
 								);
 								cli.action.stop();
 							} else {
 								this.log(
-									'User did not accept the migrated config. Skipping the Klayr Core auto-start process.',
+									'User did not accept the migrated config. Skipping the Swaptoshi Core auto-start process.',
 								);
 							}
 						} else {
 							throw new Error(
-								`User did not confirm Lisk Core node shutdown. Skipping the Klayr Core auto-start process. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Klayr Core v4 data directory (e.g: ${DEFAULT_KLAYR_CORE_PATH}/data/legacy.db/). Exiting!!!`,
+								`User did not confirm Swaptoshi Core node shutdown. Skipping the Swaptoshi Core auto-start process. Please continue manually. In order to access legacy blockchain information posts-migration, please copy the contents of the ${snapshotDirPath} directory to 'data/legacy.db' under the Swaptoshi Core data directory (e.g: ${DEFAULT_SWAPTOSHI_CORE_PATH}/data/legacy.db/). Exiting!!!`,
 							);
 						}
 					} catch (err) {
-						const errorMsg = `Failed to auto-start Klayr Core v4.\nError: ${
+						const errorMsg = `Failed to auto-start Swaptoshi Core.\nError: ${
 							(err as Error).message
 						}`;
 						throw new MigratorException(
 							errorMsg,
-							err instanceof MigratorException ? err.code : ERROR_CODE.KLAYR_CORE_START,
+							err instanceof MigratorException ? err.code : ERROR_CODE.SWAPTOSHI_CORE_START,
 						);
 					}
 				} else {
 					this.log(
-						`Please copy the contents of ${snapshotDirPath} directory to 'data/legacy.db' under the Klayr Core data directory (e.g: ${DEFAULT_KLAYR_CORE_PATH}/data/legacy.db/) in order to access legacy blockchain information.`,
+						`Please copy the contents of ${snapshotDirPath} directory to 'data/legacy.db' under the Swaptoshi Core data directory (e.g: ${DEFAULT_SWAPTOSHI_CORE_PATH}/data/legacy.db/) in order to access legacy blockchain information.`,
 					);
-					this.log('Please copy genesis block to the Klayr Core network directory.');
+					this.log('Please copy genesis block to the Swaptoshi Core network directory.');
 				}
 			}
 		} catch (error) {
 			const commandsToExecute: string[] = [];
 			const code = Number(`${(error as MigratorException).code}`);
 
-			const basicStartCommand = `klayr-core start --network ${networkConstant.name}`;
-			const klayrCoreStartCommand = getKlayrCoreStartCommand() ?? basicStartCommand;
+			const basicStartCommand = `swaptoshi-core start --network ${networkConstant.name}`;
+			const swaptoshiCoreStartCommand = getSwaptoshiCoreStartCommand() ?? basicStartCommand;
 
-			const backupLegacyDataDirCommand = `mv ${liskCoreV4DataPath} ${LISK_V4_BACKUP_DATA_DIR}`;
+			const backupLegacyDataDirCommand = `mv ${swaptoshiCoreDataPath} ${SWAPTOSHI_BACKUP_DATA_DIR}`;
 			const copyLegacyDBCommand = `cp -r ${
-				(resolve(LISK_V4_BACKUP_DATA_DIR, SNAPSHOT_DIR), LEGACY_DB_PATH)
+				(resolve(SWAPTOSHI_BACKUP_DATA_DIR, SNAPSHOT_DIR), LEGACY_DB_PATH)
 			}`;
 
 			if (
@@ -477,7 +471,7 @@ class KlayrMigrator extends Command {
 				commandsToExecute.push(
 					'\n',
 					'## Create the genesis block',
-					'## NOTE: This requires installing Klayr Core locally. Please visit https://klayr.xyz/documentation/klayr-core/setup/npm.html for further instructions',
+					'## NOTE: This requires installing Swaptoshi Core locally. Please visit https://docs.swaptoshi.com/node/install for further instructions',
 					'\n',
 				);
 				commandsToExecute.push(genesisBlockCreateCommand);
@@ -492,7 +486,7 @@ class KlayrMigrator extends Command {
 					ERROR_CODE.BACKUP_LEGACY_DATA_DIR,
 				].includes(code)
 			) {
-				commandsToExecute.push('\n', '## Backup Lisk Core data directory', '\n');
+				commandsToExecute.push('\n', '## Backup Swaptoshi Core data directory', '\n');
 				commandsToExecute.push(backupLegacyDataDirCommand);
 				commandsToExecute.push('\n', '-----------------------------------------------------', '\n');
 			}
@@ -508,7 +502,7 @@ class KlayrMigrator extends Command {
 			) {
 				commandsToExecute.push(
 					'\n',
-					'## Copy legacy (v4) blockchain information to Klayr Core legacy.db',
+					'## Copy old blockchain information to Swaptoshi Core legacy.db',
 					'\n',
 				);
 				commandsToExecute.push(copyLegacyDBCommand);
@@ -522,15 +516,15 @@ class KlayrMigrator extends Command {
 					ERROR_CODE.GENESIS_BLOCK_CREATE,
 					ERROR_CODE.BACKUP_LEGACY_DATA_DIR,
 					ERROR_CODE.COPY_LEGACY_DB,
-					ERROR_CODE.KLAYR_CORE_START,
+					ERROR_CODE.SWAPTOSHI_CORE_START,
 				].includes(code)
 			) {
 				commandsToExecute.push(
 					'\n',
-					'## Klayr Core start command - Please modify if necessary',
+					'## Swaptoshi Core start command - Please modify if necessary',
 					'\n',
 				);
-				commandsToExecute.push(klayrCoreStartCommand);
+				commandsToExecute.push(swaptoshiCoreStartCommand);
 				commandsToExecute.push('\n', '-----------------------------------------------------', '\n');
 			}
 
@@ -551,9 +545,9 @@ class KlayrMigrator extends Command {
 
 		await writeCommandsToExec(this, networkConstant, snapshotHeight, outputDir);
 		this.log(`Total execution time: ${(Date.now() - startTime) / 1000}s`);
-		this.log('Successfully finished migration. We are now Klayr!!!');
+		this.log('Successfully finished migration!');
 		process.exit(0);
 	}
 }
 
-export = KlayrMigrator;
+export = SwaptoshiMigrator;

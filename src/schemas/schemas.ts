@@ -11,7 +11,7 @@
  *
  * Removal or modification of this copyright notice is prohibited.
  */
-import { LENGTH_BLS_KEY, LENGTH_GENERATOR_KEY, LENGTH_PROOF_OF_POSSESSION } from './constants';
+import { LENGTH_BLS_KEY, LENGTH_GENERATOR_KEY, LENGTH_PROOF_OF_POSSESSION } from '../constants';
 
 export const unregisteredAddressesSchema = {
 	$id: '/legacyAccount/unregisteredAddresses',

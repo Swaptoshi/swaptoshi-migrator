@@ -1,63 +1,275 @@
 {
 	"system": {
-		"dataPath": "~/.klayr",
+		"dataPath": "~/.klayr/swaptoshi-core",
+		"keepEventsForHeights": -1,
 		"logLevel": "info",
-		"keepEventsForHeights": 300
+		"enableMetrics": true,
+		"keepInclusionProofsForHeights": -1,
+		"inclusionProofKeys": [
+			"83ed0d2500005735b05e48e476be8b87c6fcfcccdb3012808926eaa933b756379214586d380c"
+		]
 	},
 	"rpc": {
-		"modes": ["ipc", "ws", "api"],
+		"modes": ["ipc", "ws", "http"],
+		"allowedMethods": ["*"],
 		"port": 7887,
-		"host": "127.0.0.1",
-		"allowedMethods": ["generator", "system", "random", "keys", "legacy"]
+		"host": "0.0.0.0"
+	},
+	"network": {
+		"version": "1.0",
+		"seedPeers": [],
+		"port": 8778
+	},
+	"transactionPool": {
+		"maxTransactions": 1024,
+		"maxTransactionsPerAccount": 16,
+		"transactionExpiryTime": 10800000,
+		"minEntranceFeePriority": "0",
+		"minReplacementFeeDifference": "10"
 	},
 	"genesis": {
 		"block": {
 			"fromFile": "./config/genesis_block.blob"
 		},
-		"blockTime": 5,
-		"chainID": "04000000",
+		"blockTime": 3,
 		"maxTransactionsSize": 15360,
-		"minimumCertifyHeight": 23461753
+		"minimumCertifyHeight": 1,
+		"chainID": "04555555"
 	},
-	"network": {
-		"version": "5.0",
-		"seedPeers": [
-			{
-				"ip": "51.158.243.14",
-				"port": 7667
-			},
-			{
-				"ip": "51.159.232.172",
-				"port": 7667
-			},
-			{
-				"ip": "151.115.74.164",
-				"port": 7667
-			}
-		],
-		"port": 7667
-	},
-	"transactionPool": {
-		"maxTransactions": 4096,
-		"maxTransactionsPerAccount": 64,
-		"transactionExpiryTime": 10800000,
-		"minEntranceFeePriority": "0",
-		"minReplacementFeeDifference": "10"
-	},
-	"modules": {
-		"dynamicReward": {
-			"tokenID": "0400000000000000",
-			"offset": 2160,
-			"distance": 3000000,
-			"brackets": ["500000000", "400000000", "300000000", "200000000", "100000000", "200000000"]
-		},
-		"fee": {
-			"feeTokenID": "0400000000000000"
-		},
-		"pos": {
-			"maxBFTWeightCap": 1000,
-			"useInvalidBLSKey": true
+	"generator": {
+		"keys": {
+			"fromFile": "./config/dev-validators.json"
 		}
 	},
-	"plugins": {}
+	"modules": {
+		"liquidPos": {
+			"tokenID": "0455555500000001",
+			"ratio": 1
+		},
+		"feeConversion": {
+			"conversionPath": ["04555555000000000000640455555500000001"]
+		},
+		"dex": {
+			"feeAmountTickSpacing": [
+				{
+					"fee": "100",
+					"tickSpacing": "1"
+				},
+				{
+					"fee": "500",
+					"tickSpacing": "10"
+				},
+				{
+					"fee": "3000",
+					"tickSpacing": "60"
+				},
+				{
+					"fee": "10000",
+					"tickSpacing": "200"
+				}
+			],
+			"feeProtocol": 170,
+			"feeProtocolPool": "klyr49epb3jdyqmnfyrz7jdc5ws3rmyuqzje4c4jb",
+			"feeConversionEnabled": true,
+			"supportAllTokens": true,
+			"minTransactionFee": {
+				"createPool": "0",
+				"mint": "0",
+				"burn": "0",
+				"collect": "0",
+				"increaseLiquidity": "0",
+				"decreaseLiquidity": "0",
+				"exactInput": "0",
+				"exactInputSingle": "0",
+				"exactOutput": "0",
+				"exactOutputSingle": "0",
+				"treasurify": "0"
+			},
+			"baseFee": {
+				"createPool": "0",
+				"mint": "0",
+				"burn": "0",
+				"collect": "0",
+				"increaseLiquidity": "0",
+				"decreaseLiquidity": "0",
+				"exactInput": "0",
+				"exactInputSingle": "0",
+				"exactOutput": "0",
+				"exactOutputSingle": "0",
+				"treasurify": "0"
+			},
+			"nftPositionMetadata": {
+				"dex": {
+					"name": "Swaptoshi",
+					"symbol": "SWX",
+					"decimal": 8
+				},
+				"mainchain": {
+					"symbol": "KLY",
+					"decimal": 8
+				}
+			},
+			"nftPositionColorRange": {
+				"hue": [0, 360],
+				"saturation": [70, 100],
+				"lightness": [50, 60]
+			}
+		},
+		"tokenFactory": {
+			"skippedTokenID": ["0455555500000001"],
+			"icoLeftOverAddress": "klyr49epb3jdyqmnfyrz7jdc5ws3rmyuqzje4c4jb",
+			"icoFeeConversionEnabled": true,
+			"icoDexPathEnabled": true,
+			"minTransactionFee": {
+				"airdropCreate": "0",
+				"airdropDistribute": "0",
+				"airdropEditRecipients": "0",
+				"factoryTransferOwnership": "0",
+				"factorySetAttributes": "0",
+				"icoCreate": "0",
+				"icoChangePrice": "0",
+				"icoDeposit": "0",
+				"icoExactInput": "0",
+				"icoExactInputSingle": "0",
+				"icoExactOutput": "0",
+				"icoExactOutputSingle": "0",
+				"icoTreasurify": "0",
+				"icoWithdraw": "0",
+				"tokenBurn": "0",
+				"tokenCreate": "0",
+				"tokenMint": "0"
+			},
+			"baseFee": {
+				"airdropCreate": "0",
+				"airdropDistribute": "0",
+				"airdropEditRecipients": "0",
+				"factoryTransferOwnership": "0",
+				"factorySetAttributes": "0",
+				"icoCreate": "0",
+				"icoChangePrice": "0",
+				"icoDeposit": "0",
+				"icoExactInput": "0",
+				"icoExactInputSingle": "0",
+				"icoExactOutput": "0",
+				"icoExactOutputSingle": "0",
+				"icoTreasurify": "0",
+				"icoWithdraw": "0",
+				"tokenBurn": "0",
+				"tokenCreate": "0",
+				"tokenMint": "0"
+			}
+		},
+		"fee": {
+			"feeTokenID": "0455555500000000",
+			"feePoolAddress": "klyr49epb3jdyqmnfyrz7jdc5ws3rmyuqzje4c4jb",
+			"dangerouslySkipBalanceVerification": true,
+			"dangerouslySkipAvailableFeeInitialization": true
+		},
+		"pos": {
+			"minWeightStandby": "1000000000",
+			"failSafeInactiveWindow": 403200,
+			"punishmentWindowStaking": 806400,
+			"punishmentWindowSelfStaking": 2419200,
+			"lockingPeriodStaking": 86400,
+			"lockingPeriodSelfStaking": 806400,
+			"maxBFTWeightCap": 1000,
+			"useInvalidBLSKey": false
+		},
+		"governance": {
+			"governGovernanceConfig": true,
+			"proposalCreationMinBalance": "1000000000000",
+			"proposalCreationDeposit": "100000000000",
+			"maxProposalActions": -1,
+			"votingDelayDuration": 0,
+			"voteDuration": 806400,
+			"quorumDuration": 806400,
+			"executionDuration": 806400,
+			"quorumTreshold": "5%",
+			"quorumMode": 0,
+			"depositPoolAddress": "klyr49epb3jdyqmnfyrz7jdc5ws3rmyuqzje4c4jb",
+			"enableTurnoutBias": true,
+			"enableBoosting": true,
+			"maxBoostDuration": 20736000,
+			"boostFactor": 200,
+			"treasuryAddress": "klyr49epb3jdyqmnfyrz7jdc5ws3rmyuqzje4c4jb",
+			"treasuryReward": {
+				"tokenID": "0455555500000000",
+				"offset": 1,
+				"distance": 1,
+				"blockRewardTaxBracket": ["10%"],
+				"mintBracket": []
+			},
+			"minTransactionFee": {
+				"createProposal": "0",
+				"vote": "0",
+				"boostVote": "0",
+				"delegateVote": "0",
+				"revokeDelegatedVote": "0",
+				"setProposalAttributes": "0"
+			},
+			"baseFee": {
+				"createProposal": "1000000000",
+				"vote": "0",
+				"boostVote": "0",
+				"delegateVote": "0",
+				"revokeDelegatedVote": "0",
+				"setProposalAttributes": "0"
+			}
+		},
+		"dynamicReward": {
+			"offset": 201559,
+			"distance": 42000000,
+			"brackets": [
+				"25000000",
+				"12500000",
+				"6250000",
+				"3124000",
+				"1562000",
+				"781000",
+				"390000",
+				"195000",
+				"97500",
+				"48800",
+				"24400",
+				"12200",
+				"6100",
+				"3050",
+				"1600",
+				"760",
+				"380",
+				"190",
+				"95",
+				"45",
+				"20",
+				"10",
+				"5",
+				"2",
+				"1",
+				"0"
+			]
+		},
+		"token": {
+			"userAccountInitializationFee": "0",
+			"escrowAccountInitializationFee": "0"
+		}
+	},
+	"plugins": {
+		"chainConnector": {
+			"encryptedPrivateKey": "kdf=argon2id&cipher=aes-128-gcm&version=1&ciphertext=2a96e2ffa614e838389bf52a40b89a85570fd01a11462df7903f8073bd5302945cd32edbcfc8ee72fac61edc10e02b068f19ce3f0bf5af773d4657bad707c6b1f1d70e0b0bd1657530bf9b4eb24fea6ee49c645ae22d3cd92ca88342f334e02348ba19f1499f5dd99ccc7870a589e04660fe37f54d3ceba90b378dac5500910d&mac=436027a2906b585601fafa9be654207eee2ed4f9d1c8a1ccd0f0e737096bfc7f&salt=701158d498117e8a&iv=3e6f8c010cccce9c5135b24fd2a58c6e&tag=c3c8419ef3a7113d33790e3976f36870&iterations=1&parallelism=4&memorySize=2097023",
+			"ccuFrequency": 300,
+			"receivingChainIPCPath": "~/.klayr/klayr-core",
+			"receivingChainID": "04000000"
+		},
+		"faucet": {
+			"tokenID": "0455555500000000",
+			"encryptedPrivateKey": "kdf=argon2id&cipher=aes-128-gcm&version=1&ciphertext=a0f2b84a2343d876ec92ec9503e23822eea0d07f3f08c223813407bb4762e2fe144c5085fab27c35c0088a16c7e77a0b7d28bebfbf8c7bc056963a570a716fcd8668e369aea6a46d35cb6de5dd75df2cf23348fd85d7fd9c0c4065bd503277ab4cb36a5a90ea771fb6d118039b3460d72951016e8f5908c131694cfd4a3add8d&mac=ad35411fa3924a2ad391ede3977e7462a21d947c7526e0e95d18a8c3105c4659&salt=d97c964ba69c7062&iv=84876f3375b4bfc7e138befc2410a21e&tag=b183849deec201c42d74478e3cafc84e&iterations=1&parallelism=4&memorySize=2097023",
+			"captchaSecretkey": "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
+			"captchaSitekey": "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
+			"amount": "2000",
+			"host": "0.0.0.0"
+		},
+		"dashboard": {
+			"host": "0.0.0.0"
+		}
+	}
 }
