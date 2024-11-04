@@ -78,18 +78,19 @@ export const getBoostedAccountSubstore = async (
 	)) as { key: Buffer; value: BoostedAccountStoreData }[];
 
 	return boostedAccounts
-		.map(item => ({
-			...item.value,
-			address: getKlayr32AddressFromAddress(item.key),
-		}))
 		.sort((a, b) => {
 			// First, sort by address
-			if (a.address < b.address) return -1;
-			if (a.address > b.address) return 1;
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
 
 			// default
 			return 0;
-		});
+		})
+		.map(item => ({
+			...item.value,
+			address: getKlayr32AddressFromAddress(item.key),
+		}));
 };
 
 export const getCastedVoteSubstore = async (
@@ -105,18 +106,19 @@ export const getCastedVoteSubstore = async (
 	)) as { key: Buffer; value: CastedVoteStoreData }[];
 
 	return castedVotes
-		.map(item => ({
-			...item.value,
-			address: getKlayr32AddressFromAddress(item.key),
-		}))
 		.sort((a, b) => {
 			// First, sort by address
-			if (a.address < b.address) return -1;
-			if (a.address > b.address) return 1;
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
 
 			// default
 			return 0;
-		});
+		})
+		.map(item => ({
+			...item.value,
+			address: getKlayr32AddressFromAddress(item.key),
+		}));
 };
 
 export const getDelegatedVoteSubstore = async (
@@ -132,19 +134,20 @@ export const getDelegatedVoteSubstore = async (
 	)) as { key: Buffer; value: DelegatedVoteStoreData }[];
 
 	return delegatedVotes
+		.sort((a, b) => {
+			// First, sort by address
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
+
+			// default
+			return 0;
+		})
 		.map(item => ({
 			outgoingDelegation: getKlayr32AddressFromAddress(item.value.outgoingDelegation),
 			incomingDelegation: item.value.incomingDelegation.map(t => getKlayr32AddressFromAddress(t)),
 			address: getKlayr32AddressFromAddress(item.key),
-		}))
-		.sort((a, b) => {
-			// First, sort by address
-			if (a.address < b.address) return -1;
-			if (a.address > b.address) return 1;
-
-			// default
-			return 0;
-		});
+		}));
 };
 
 export const getNextAvailableProposalIdSubstore = async (
@@ -184,11 +187,11 @@ export const getProposalVoterSubstore = async (
 	)) as { key: Buffer; value: ProposalVoterStoreData }[];
 
 	return proposalVoters
+		.sort((a, b) => a.key.readUIntBE(0, 4) - b.key.readUIntBE(0, 4)) // sort by proposalId
 		.map(item => ({
 			voters: item.value.voters.map(t => getKlayr32AddressFromAddress(t)),
 			proposalId: item.key.readUIntBE(0, 4),
-		}))
-		.sort((a, b) => a.proposalId - b.proposalId); // sort by proposalId
+		}));
 };
 
 export const getProposalSubstore = async (db: StateDB): Promise<ProposalGenesisSubstoreEntry[]> => {
@@ -202,6 +205,7 @@ export const getProposalSubstore = async (db: StateDB): Promise<ProposalGenesisS
 	)) as { key: Buffer; value: ProposalStoreData }[];
 
 	return proposals
+		.sort((a, b) => a.key.readUIntBE(0, 4) - b.key.readUIntBE(0, 4)) // sort by proposalId
 		.map(item => ({
 			...item.value,
 			deposited: item.value.deposited.toString(),
@@ -225,8 +229,7 @@ export const getProposalSubstore = async (db: StateDB): Promise<ProposalGenesisS
 				data: t.data.toString('hex'),
 			})),
 			proposalId: item.key.readUIntBE(0, 4),
-		}))
-		.sort((a, b) => a.proposalId - b.proposalId); // sort by proposalId
+		}));
 };
 
 export const getProposalQueueSubstore = async (
@@ -242,11 +245,11 @@ export const getProposalQueueSubstore = async (
 	)) as { key: Buffer; value: ProposalQueueStoreData }[];
 
 	return proposalQueues
+		.sort((a, b) => a.key.readUIntBE(0, 4) - b.key.readUIntBE(0, 4)) // sort by height
 		.map(item => ({
 			...item.value,
 			height: item.key.readUIntBE(0, 4),
-		}))
-		.sort((a, b) => a.height - b.height); // sort by height
+		}));
 };
 
 export const getVoteScoreSubstore = async (
@@ -262,18 +265,19 @@ export const getVoteScoreSubstore = async (
 	)) as { key: Buffer; value: VoteScoreStoreData }[];
 
 	return voteScores
-		.map(item => ({
-			score: item.value.score.toString(),
-			address: getKlayr32AddressFromAddress(item.key),
-		}))
 		.sort((a, b) => {
 			// First, sort by address
-			if (a.address < b.address) return -1;
-			if (a.address > b.address) return 1;
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
 
 			// default
 			return 0;
-		});
+		})
+		.map(item => ({
+			score: item.value.score.toString(),
+			address: getKlayr32AddressFromAddress(item.key),
+		}));
 };
 
 export const getGovernanceModuleEntry = async (

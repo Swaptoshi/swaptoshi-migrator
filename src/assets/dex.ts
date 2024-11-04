@@ -51,23 +51,20 @@ export const getObservationSubstore = async (db: StateDB): Promise<ObservationSu
 	)) as { key: Buffer; value: Omit<ObservationSubstoreEntry, 'poolAddress' | 'index'> }[];
 
 	return observations
-		.map(item => {
-			const indexBuf = item.key.subarray(20);
-
-			return {
-				...item.value,
-				poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
-				index: indexBuf.readUIntBE(0, 2).toString(),
-			};
-		})
 		.sort((a, b) => {
 			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
+			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
+				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
+			}
 
 			// If poolAddress is the same, sort by index (convert to number to ensure correct numerical sorting)
-			return parseInt(a.index, 10) - parseInt(b.index, 10);
-		});
+			return a.key.subarray(20).readUIntBE(0, 2) - b.key.subarray(20).readUIntBE(0, 2);
+		})
+		.map(item => ({
+			...item.value,
+			poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
+			index: item.key.subarray(20).readUIntBE(0, 2).toString(),
+		}));
 };
 
 export const getPoolSubstore = async (db: StateDB): Promise<DEXPoolSubstoreEntry[]> => {
@@ -81,23 +78,25 @@ export const getPoolSubstore = async (db: StateDB): Promise<DEXPoolSubstoreEntry
 	)) as { key: Buffer; value: DEXPoolData }[];
 
 	return pools
+		.sort((a, b) => {
+			// First, sort by token0
+			if (!a.value.token0.equals(b.value.token0)) {
+				return a.value.token0.compare(b.value.token0);
+			}
+
+			// If token0 is the same, sort by token1
+			if (!a.value.token1.equals(b.value.token1)) {
+				return a.value.token1.compare(b.value.token1);
+			}
+
+			// If both token0 and token1 are the same, sort by fee (convert to number if necessary)
+			return parseInt(a.value.fee, 10) - parseInt(b.value.fee, 10);
+		})
 		.map(item => ({
 			...item.value,
 			token0: item.value.token0.toString('hex'),
 			token1: item.value.token1.toString('hex'),
-		}))
-		.sort((a, b) => {
-			// First, sort by token0
-			if (a.token0 < b.token0) return -1;
-			if (a.token0 > b.token0) return 1;
-
-			// If token0 is the same, sort by token1
-			if (a.token1 < b.token1) return -1;
-			if (a.token1 > b.token1) return 1;
-
-			// If both token0 and token1 are the same, sort by fee (convert to number if necessary)
-			return parseInt(a.fee, 10) - parseInt(b.fee, 10);
-		});
+		}));
 };
 
 export const getPositionInfoSubstore = async (
@@ -113,23 +112,25 @@ export const getPositionInfoSubstore = async (
 	)) as { key: Buffer; value: Omit<PositionInfoSubstoreEntry, 'poolAddress' | 'key'> }[];
 
 	return positionInfos
+		.sort((a, b) => {
+			// First, sort by poolAddress
+			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
+				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
+			}
+
+			// If both poolAddress are the same, sort by key
+			if (!a.key.subarray(20).equals(b.key.subarray(20))) {
+				return a.key.subarray(20).compare(b.key.subarray(20));
+			}
+
+			// default
+			return 0;
+		})
 		.map(item => ({
 			...item.value,
 			poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
 			key: item.key.subarray(20).toString('hex'),
-		}))
-		.sort((a, b) => {
-			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
-
-			// If both poolAddress are the same, sort by key
-			if (a.key < b.key) return -1;
-			if (a.key > b.key) return 1;
-
-			// default
-			return 0;
-		});
+		}));
 };
 
 export const getPositionManagerSubstore = async (
@@ -145,18 +146,19 @@ export const getPositionManagerSubstore = async (
 	)) as { key: Buffer; value: PositionManager }[];
 
 	return positionManagers
-		.map(item => ({
-			...item.value,
-			poolAddress: getKlayr32AddressFromAddress(item.value.poolAddress),
-		}))
 		.sort((a, b) => {
 			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
+			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
+				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
+			}
 
 			// default
 			return 0;
-		});
+		})
+		.map(item => ({
+			...item.value,
+			poolAddress: getKlayr32AddressFromAddress(item.value.poolAddress),
+		}));
 };
 
 export const getSupportedTokenSubstore = async (
@@ -199,23 +201,20 @@ export const getTickBitmapSubstore = async (db: StateDB): Promise<TickBitmapSubs
 	)) as { key: Buffer; value: Omit<TickBitmapSubstoreEntry, 'poolAddress' | 'index'> }[];
 
 	return tickBitmaps
-		.map(item => {
-			const indexBuf = item.key.subarray(20);
-
-			return {
-				...item.value,
-				poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
-				index: indexBuf.readUIntBE(0, 2).toString(),
-			};
-		})
 		.sort((a, b) => {
 			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
+			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
+				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
+			}
 
 			// If poolAddress is the same, sort by index (convert to number to ensure correct numerical sorting)
-			return parseInt(a.index, 10) - parseInt(b.index, 10);
-		});
+			return a.key.subarray(20).readUIntBE(0, 2) - b.key.subarray(20).readUIntBE(0, 2);
+		})
+		.map(item => ({
+			...item.value,
+			poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
+			index: item.key.subarray(20).readUIntBE(0, 2).toString(),
+		}));
 };
 
 export const getTickInfoSubstore = async (db: StateDB): Promise<TickInfoSubstoreEntry[]> => {
@@ -229,23 +228,20 @@ export const getTickInfoSubstore = async (db: StateDB): Promise<TickInfoSubstore
 	)) as { key: Buffer; value: Omit<TickInfoSubstoreEntry, 'poolAddress' | 'tick'> }[];
 
 	return tickInfos
-		.map(item => {
-			const tickBuff = item.key.subarray(20);
-
-			return {
-				...item.value,
-				poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
-				tick: tickBuff.readUIntBE(0, 3).toString(),
-			};
-		})
 		.sort((a, b) => {
 			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
+			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
+				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
+			}
 
 			// If poolAddress is the same, sort by tick (convert to number to ensure correct numerical sorting)
-			return parseInt(a.tick, 10) - parseInt(b.tick, 10);
-		});
+			return a.key.subarray(20).readUIntBE(0, 3) - b.key.subarray(20).readUIntBE(0, 3);
+		})
+		.map(item => ({
+			...item.value,
+			poolAddress: getKlayr32AddressFromAddress(item.key.subarray(0, 20)),
+			tick: item.key.subarray(20).readUIntBE(0, 3).toString(),
+		}));
 };
 
 export const getTokenSymbolSubstore = async (db: StateDB): Promise<TokenSymbolSubstoreEntry[]> => {
@@ -259,18 +255,19 @@ export const getTokenSymbolSubstore = async (db: StateDB): Promise<TokenSymbolSu
 	)) as { key: Buffer; value: Omit<TokenSymbolSubstoreEntry, 'tokenID'> }[];
 
 	return tokenSymbols
-		.map(item => ({
-			...item.value,
-			tokenID: item.key.toString('hex'),
-		}))
 		.sort((a, b) => {
 			// First, sort by tokenID
-			if (a.tokenID < b.tokenID) return -1;
-			if (a.tokenID > b.tokenID) return 1;
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
 
 			// default
 			return 0;
-		});
+		})
+		.map(item => ({
+			...item.value,
+			tokenID: item.key.toString('hex'),
+		}));
 };
 
 export const getDexModuleEntry = async (

@@ -43,6 +43,20 @@ export const getAirdropSubstore = async (db: StateDB): Promise<AirdropGenesisSub
 	)) as { key: Buffer; value: AirdropStoreData }[];
 
 	return airdrops
+		.sort((a, b) => {
+			// First, sort by tokenId
+			if (!a.key.subarray(0, 8).equals(b.key.subarray(0, 8))) {
+				return a.key.subarray(0, 8).compare(b.key.subarray(0, 8));
+			}
+
+			// Then, sort by providerAddress
+			if (!a.key.subarray(8).equals(b.key.subarray(8))) {
+				return a.key.subarray(8).compare(b.key.subarray(8));
+			}
+
+			// default
+			return 0;
+		})
 		.map(item => ({
 			recipients: item.value.recipients.map(t => ({
 				address: getKlayr32AddressFromAddress(t.address),
@@ -50,19 +64,7 @@ export const getAirdropSubstore = async (db: StateDB): Promise<AirdropGenesisSub
 			})),
 			tokenId: item.key.subarray(0, 8).toString('hex'),
 			providerAddress: getKlayr32AddressFromAddress(item.key.subarray(8)),
-		}))
-		.sort((a, b) => {
-			// First, sort by tokenId
-			if (a.tokenId < b.tokenId) return -1;
-			if (a.tokenId > b.tokenId) return 1;
-
-			// Then, sort by providerAddress
-			if (a.providerAddress < b.providerAddress) return -1;
-			if (a.providerAddress > b.providerAddress) return 1;
-
-			// default
-			return 0;
-		});
+		}));
 };
 
 export const getFactorySubstore = async (db: StateDB): Promise<FactoryGenesisSubstoreEntry[]> => {
@@ -76,6 +78,15 @@ export const getFactorySubstore = async (db: StateDB): Promise<FactoryGenesisSub
 	)) as { key: Buffer; value: FactoryStoreData }[];
 
 	return factories
+		.sort((a, b) => {
+			// First, sort by tokenId
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
+
+			// default
+			return 0;
+		})
 		.map(item => ({
 			owner: getKlayr32AddressFromAddress(item.value.owner),
 			attributesArray: item.value.attributesArray.map(t => ({
@@ -83,15 +94,7 @@ export const getFactorySubstore = async (db: StateDB): Promise<FactoryGenesisSub
 				attributes: t.attributes.toString('hex'),
 			})),
 			tokenId: item.key.toString('hex'),
-		}))
-		.sort((a, b) => {
-			// First, sort by tokenId
-			if (a.tokenId < b.tokenId) return -1;
-			if (a.tokenId > b.tokenId) return 1;
-
-			// default
-			return 0;
-		});
+		}));
 };
 
 export const getICOSubstore = async (db: StateDB): Promise<ICOGenesisSubstoreEntry[]> => {
@@ -105,19 +108,20 @@ export const getICOSubstore = async (db: StateDB): Promise<ICOGenesisSubstoreEnt
 	)) as { key: Buffer; value: ICOStoreData }[];
 
 	return icos
+		.sort((a, b) => {
+			// First, sort by poolAddress
+			if (!a.key.equals(b.key)) {
+				return a.key.compare(b.key);
+			}
+
+			// default
+			return 0;
+		})
 		.map(item => ({
 			providerAddress: getKlayr32AddressFromAddress(item.value.providerAddress),
 			price: item.value.price,
 			poolAddress: getKlayr32AddressFromAddress(item.key),
-		}))
-		.sort((a, b) => {
-			// First, sort by poolAddress
-			if (a.poolAddress < b.poolAddress) return -1;
-			if (a.poolAddress > b.poolAddress) return 1;
-
-			// default
-			return 0;
-		});
+		}));
 };
 
 export const getNextAvailableTokenIdSubstore = async (
@@ -154,19 +158,15 @@ export const getVestingUnlockSubstore = async (
 	)) as { key: Buffer; value: VestingUnlockStoreData }[];
 
 	return vestingUnlocks
-		.map(item => {
-			const indexBuf = item.key;
-
-			return {
-				toBeUnlocked: item.value.toBeUnlocked.map(t => ({
-					tokenId: t.tokenId.toString('hex'),
-					address: getKlayr32AddressFromAddress(t.address),
-					amount: t.amount.toString(),
-				})),
-				height: indexBuf.readUIntBE(0, 4),
-			};
-		})
-		.sort((a, b) => a.height - b.height); // sort by height
+		.sort((a, b) => a.key.readUIntBE(0, 4) - b.key.readUIntBE(0, 4)) // sort by height
+		.map(item => ({
+			toBeUnlocked: item.value.toBeUnlocked.map(t => ({
+				tokenId: t.tokenId.toString('hex'),
+				address: getKlayr32AddressFromAddress(t.address),
+				amount: t.amount.toString(),
+			})),
+			height: item.key.readUIntBE(0, 4),
+		}));
 };
 
 export const getTokenFactoryModuleEntry = async (
