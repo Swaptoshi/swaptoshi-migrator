@@ -74,6 +74,7 @@ import {
 } from './constants';
 import { getFeeConversionModuleEntry } from './assets/feeConversion';
 import { getLiquidPosModuleEntry } from './assets/liquidPos';
+import { getNFTModuleEntry, getNFTSubstore, getSupportedNFTsSubstore } from './assets/nft';
 
 const AMOUNT_ZERO = BigInt('0');
 
@@ -246,6 +247,11 @@ export class CreateAsset {
 			governanceConfigSubstore,
 		);
 
+		// create nft module assets
+		const nftSubstore = await getNFTSubstore(this._db);
+		const supportedNFTsSubstore = await getSupportedNFTsSubstore(this._db);
+		const nftModuleSubstore = await getNFTModuleEntry(nftSubstore, supportedNFTsSubstore);
+
 		return updateConfigSubstore(
 			[
 				dexModuleAssets,
@@ -253,6 +259,7 @@ export class CreateAsset {
 				feeConversionModuleAssets,
 				liquidPosModuleAssets,
 				governanceModuleAssets,
+				nftModuleSubstore,
 				authModuleAssets,
 				tokenModuleAssets,
 				posModuleAssets,

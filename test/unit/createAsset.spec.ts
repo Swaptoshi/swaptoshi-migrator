@@ -28,6 +28,7 @@ import {
 	MODULE_NAME_FEE_CONVERSION,
 	MODULE_NAME_GOVERNANCE,
 	MODULE_NAME_LIQUID_POS,
+	MODULE_NAME_NFT,
 	MODULE_NAME_TOKEN_FACTORY,
 	NETWORK_CONSTANT,
 } from '../../src/constants';
@@ -61,6 +62,7 @@ describe('Build assets/legacy', () => {
 				MODULE_NAME_FEE_CONVERSION,
 				MODULE_NAME_LIQUID_POS,
 				MODULE_NAME_GOVERNANCE,
+				MODULE_NAME_NFT,
 			];
 			// Assert
 			expect(response).toHaveLength(moduleList.length);

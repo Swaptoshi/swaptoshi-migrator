@@ -36,6 +36,7 @@ export const MODULE_NAME_TOKEN_FACTORY = 'tokenFactory';
 export const MODULE_NAME_GOVERNANCE = 'governance';
 export const MODULE_NAME_FEE_CONVERSION = 'feeConversion';
 export const MODULE_NAME_LIQUID_POS = 'liquidPos';
+export const MODULE_NAME_NFT = 'nft';
 
 const DEX_DEFAULT_NAME = 'Swaptoshi';
 const DEX_DEFAULT_TOKEN_SYMBOL = 'SWX';
@@ -269,6 +270,17 @@ export const DB_PREFIX_TOKEN_FACTORY_GOVERNABLE_CONFIG_STORE = Buffer.concat([
 export const DB_PREFIX_GOVERNANCE_GOVERNABLE_CONFIG_STORE = Buffer.concat([
 	computeStorePrefix(MODULE_NAME_GOVERNANCE),
 	computeSubstorePrefix(0),
+]);
+
+// nft stores
+export const DB_PREFIX_NFT_STORE = Buffer.concat([
+	computeStorePrefix(MODULE_NAME_NFT),
+	computeSubstorePrefix(0),
+]);
+
+export const DB_PREFIX_SUPPORTED_NFT_STORE = Buffer.concat([
+	computeStorePrefix(MODULE_NAME_NFT),
+	computeSubstorePrefix(3),
 ]);
 
 export const POS_INIT_ROUNDS = 587 * 2;
