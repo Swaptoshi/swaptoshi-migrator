@@ -101,7 +101,7 @@ export interface TickInfoSubstoreEntry {
 export interface TokenSymbolSubstoreEntry {
 	symbol: string;
 	decimal: number;
-	tokenID: string;
+	tokenId: string;
 }
 
 export interface DexGenesisStoreEntry {

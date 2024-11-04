@@ -146,15 +146,7 @@ export const getPositionManagerSubstore = async (
 	)) as { key: Buffer; value: PositionManager }[];
 
 	return positionManagers
-		.sort((a, b) => {
-			// First, sort by poolAddress
-			if (!a.key.subarray(0, 20).equals(b.key.subarray(0, 20))) {
-				return a.key.subarray(0, 20).compare(b.key.subarray(0, 20));
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.value.poolAddress.compare(b.value.poolAddress))
 		.map(item => ({
 			...item.value,
 			poolAddress: getKlayr32AddressFromAddress(item.value.poolAddress),
@@ -177,12 +169,8 @@ export const getSupportedTokenSubstore = async (
 			{
 				supportAll: suppoertedTokens.supportAll,
 				supported: suppoertedTokens.supported
-					.map(t => t.toString('hex'))
-					.sort((a, b) => {
-						if (a > b) return 1;
-						if (b > a) return -1;
-						return 0;
-					}),
+					.sort((a, b) => a.compare(b))
+					.map(t => t.toString('hex')),
 			},
 		];
 	} catch {
@@ -255,18 +243,10 @@ export const getTokenSymbolSubstore = async (db: StateDB): Promise<TokenSymbolSu
 	)) as { key: Buffer; value: Omit<TokenSymbolSubstoreEntry, 'tokenID'> }[];
 
 	return tokenSymbols
-		.sort((a, b) => {
-			// First, sort by tokenID
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			...item.value,
-			tokenID: item.key.toString('hex'),
+			tokenId: item.key.toString('hex'),
 		}));
 };
 
