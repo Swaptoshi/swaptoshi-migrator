@@ -5,10 +5,12 @@
 Swaptoshi Migrator is a command line tool to migrate the blockchain data to the latest protocol when hard fork.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/swaptoshi/swaptoshi-migrator)
+[![codecov](https://codecov.io/gh/Swaptoshi/swaptoshi-migrator/graph/badge.svg?token=ZH9H8QFX4N)](https://codecov.io/gh/Swaptoshi/swaptoshi-migrator)
 ![GitHub repo size](https://img.shields.io/github/repo-size/swaptoshi/swaptoshi-migrator)
+
+<!-- ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/swaptoshi/swaptoshi-migrator)
 ![GitHub issues](https://img.shields.io/github/issues-raw/swaptoshi/swaptoshi-migrator)
-![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/swaptoshi/swaptoshi-migrator)
+![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/swaptoshi/swaptoshi-migrator) -->
 
 ## Installation
 
