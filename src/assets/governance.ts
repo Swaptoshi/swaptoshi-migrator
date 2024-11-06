@@ -78,15 +78,7 @@ export const getBoostedAccountSubstore = async (
 	)) as { key: Buffer; value: BoostedAccountStoreData }[];
 
 	return boostedAccounts
-		.sort((a, b) => {
-			// First, sort by address
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			...item.value,
 			address: getKlayr32AddressFromAddress(item.key),
@@ -106,15 +98,7 @@ export const getCastedVoteSubstore = async (
 	)) as { key: Buffer; value: CastedVoteStoreData }[];
 
 	return castedVotes
-		.sort((a, b) => {
-			// First, sort by address
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			...item.value,
 			address: getKlayr32AddressFromAddress(item.key),
@@ -134,15 +118,7 @@ export const getDelegatedVoteSubstore = async (
 	)) as { key: Buffer; value: DelegatedVoteStoreData }[];
 
 	return delegatedVotes
-		.sort((a, b) => {
-			// First, sort by address
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			outgoingDelegation: getKlayr32AddressFromAddress(item.value.outgoingDelegation),
 			incomingDelegation: item.value.incomingDelegation.map(t => getKlayr32AddressFromAddress(t)),
@@ -265,15 +241,7 @@ export const getVoteScoreSubstore = async (
 	)) as { key: Buffer; value: VoteScoreStoreData }[];
 
 	return voteScores
-		.sort((a, b) => {
-			// First, sort by address
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			score: item.value.score.toString(),
 			address: getKlayr32AddressFromAddress(item.key),

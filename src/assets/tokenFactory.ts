@@ -78,15 +78,7 @@ export const getFactorySubstore = async (db: StateDB): Promise<FactoryGenesisSub
 	)) as { key: Buffer; value: FactoryStoreData }[];
 
 	return factories
-		.sort((a, b) => {
-			// First, sort by tokenId
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			owner: getKlayr32AddressFromAddress(item.value.owner),
 			attributesArray: item.value.attributesArray.map(t => ({
@@ -108,15 +100,7 @@ export const getICOSubstore = async (db: StateDB): Promise<ICOGenesisSubstoreEnt
 	)) as { key: Buffer; value: ICOStoreData }[];
 
 	return icos
-		.sort((a, b) => {
-			// First, sort by poolAddress
-			if (!a.key.equals(b.key)) {
-				return a.key.compare(b.key);
-			}
-
-			// default
-			return 0;
-		})
+		.sort((a, b) => a.key.compare(b.key))
 		.map(item => ({
 			providerAddress: getKlayr32AddressFromAddress(item.value.providerAddress),
 			price: item.value.price,

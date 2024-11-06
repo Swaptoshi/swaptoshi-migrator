@@ -22,7 +22,12 @@ import { join, resolve } from 'path';
 import { validator } from '@klayr/validator';
 import { ApplicationConfig, applicationConfigSchema } from 'klayr-framework';
 import { objects } from '@klayr/utils';
-import { GenesisAssetEntry, LoggerConfig, NetworkConfigLocal } from '../types';
+import {
+	GenesisAssetEntry,
+	GovernanceGenesisStoreEntry,
+	LoggerConfig,
+	NetworkConfigLocal,
+} from '../types';
 import {
 	BLOCK_TIME,
 	DEFAULT_VERSION,
@@ -101,6 +106,7 @@ export const createBackup = async (config: ApplicationConfig): Promise<void> => 
 	writeFileSync(resolve(`${backupPath}/config.json`), JSON.stringify(config, null, '\t'));
 };
 
+// TODO: update this
 export const updateConfigSubstore = (
 	assets: GenesisAssetEntry[],
 	networkConstant: NetworkConfigLocal,
@@ -109,9 +115,10 @@ export const updateConfigSubstore = (
 	for (const configToUpdate of networkConstant.updatedConfigSubstore) {
 		const index = assetsClone.findIndex(t => t.module === configToUpdate.module);
 		if (index !== -1 && Object.keys(assetsClone[index].data).includes('configSubstore')) {
-			(assetsClone[index].data.configSubstore as {
-				data: string;
-			}).data = configToUpdate.data.toString('hex');
+			(assetsClone[index].data
+				.configSubstore as GovernanceGenesisStoreEntry['configSubstore']).data = configToUpdate.data.toString(
+				'hex',
+			);
 		}
 	}
 	return assetsClone;
