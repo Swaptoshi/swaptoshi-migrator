@@ -39,6 +39,7 @@ describe('Build assets/legacy', () => {
 		it('should create assets', async () => {
 			const networkConstant = utils.objects.cloneDeep(NETWORK_CONSTANT['01555555']);
 			networkConstant.tokenID = '0100000000000000';
+			networkConstant.additionalConfigRegistry = [];
 
 			setTokenIDSwxByNetID('01555555');
 			setPrevSnapshotBlockHeightByNetID('01555555');
