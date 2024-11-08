@@ -1,5 +1,3 @@
-import { GovernableConfigSubstoreEntry } from './types';
-
 export interface Slot0 {
 	sqrtPriceX96: string;
 	tick: string;
@@ -113,5 +111,4 @@ export interface DexGenesisStoreEntry {
 	tickBitmapSubstore: TickBitmapSubstoreEntry[];
 	tickInfoSubstore: TickInfoSubstoreEntry[];
 	tokenSymbolSubstore: TokenSymbolSubstoreEntry[];
-	configSubstore: GovernableConfigSubstoreEntry;
 }

@@ -56,8 +56,9 @@ import {
 import {
 	getBoostedAccountSubstore,
 	getCastedVoteSubstore,
+	getConfigRegistrySubstore,
+	getConfigSubstore,
 	getDelegatedVoteSubstore,
-	getGovernableConfigSubstore,
 	getGovernanceModuleEntry,
 	getNextAvailableProposalIdSubstore,
 	getProposalQueueSubstore,
@@ -65,15 +66,6 @@ import {
 	getProposalVoterSubstore,
 	getVoteScoreSubstore,
 } from './assets/governance';
-import {
-	DB_PREFIX_DEX_GOVERNABLE_CONFIG_STORE,
-	DB_PREFIX_FEE_CONVERSION_GOVERNABLE_CONFIG_STORE,
-	DB_PREFIX_GOVERNANCE_GOVERNABLE_CONFIG_STORE,
-	DB_PREFIX_LIQUID_POS_GOVERNABLE_CONFIG_STORE,
-	DB_PREFIX_TOKEN_FACTORY_GOVERNABLE_CONFIG_STORE,
-} from './constants';
-import { getFeeConversionModuleEntry } from './assets/feeConversion';
-import { getLiquidPosModuleEntry } from './assets/liquidPos';
 import { getNFTModuleEntry, getNFTSubstore, getSupportedNFTsSubstore } from './assets/nft';
 
 const AMOUNT_ZERO = BigInt('0');
@@ -171,10 +163,6 @@ export class CreateAsset {
 		const tickBitmapSubstore = await getTickBitmapSubstore(this._db);
 		const tickInfoSubstore = await getTickInfoSubstore(this._db);
 		const tokenSymbolSubstore = await getTokenSymbolSubstore(this._db);
-		const dexConfigSubstore = await getGovernableConfigSubstore(
-			this._db,
-			DB_PREFIX_DEX_GOVERNABLE_CONFIG_STORE,
-		);
 		const dexModuleAssets = await getDexModuleEntry(
 			observationSubstore,
 			poolSubstore,
@@ -184,7 +172,6 @@ export class CreateAsset {
 			tickBitmapSubstore,
 			tickInfoSubstore,
 			tokenSymbolSubstore,
-			dexConfigSubstore,
 		);
 
 		// create tokenFactory module assets
@@ -193,34 +180,13 @@ export class CreateAsset {
 		const icoSubstore = await getICOSubstore(this._db);
 		const nextAvailableTokenIdSubstore = await getNextAvailableTokenIdSubstore(this._db);
 		const vestingUnlockSubstore = await getVestingUnlockSubstore(this._db);
-		const tokenFactoryConfigSubstore = await getGovernableConfigSubstore(
-			this._db,
-			DB_PREFIX_TOKEN_FACTORY_GOVERNABLE_CONFIG_STORE,
-		);
 		const tokenFactoryModuleAssets = await getTokenFactoryModuleEntry(
 			airdropSubstore,
 			factorySubstore,
 			icoSubstore,
 			nextAvailableTokenIdSubstore,
 			vestingUnlockSubstore,
-			tokenFactoryConfigSubstore,
 		);
-
-		// create fee conversion module assets
-		const feeConversionConfigSubstore = await getGovernableConfigSubstore(
-			this._db,
-			DB_PREFIX_FEE_CONVERSION_GOVERNABLE_CONFIG_STORE,
-		);
-		const feeConversionModuleAssets = await getFeeConversionModuleEntry(
-			feeConversionConfigSubstore,
-		);
-
-		// create liquid pos module assets
-		const liquidPosConfigSubstore = await getGovernableConfigSubstore(
-			this._db,
-			DB_PREFIX_LIQUID_POS_GOVERNABLE_CONFIG_STORE,
-		);
-		const liquidPosModuleAssets = await getLiquidPosModuleEntry(liquidPosConfigSubstore);
 
 		// create governance module assets
 		const boostedAccountSubstore = await getBoostedAccountSubstore(this._db);
@@ -231,10 +197,8 @@ export class CreateAsset {
 		const proposalSubstore = await getProposalSubstore(this._db);
 		const queueSubstore = await getProposalQueueSubstore(this._db);
 		const voteScoreSubstore = await getVoteScoreSubstore(this._db);
-		const governanceConfigSubstore = await getGovernableConfigSubstore(
-			this._db,
-			DB_PREFIX_GOVERNANCE_GOVERNABLE_CONFIG_STORE,
-		);
+		const configRegistrySubstore = await getConfigRegistrySubstore(this._db, networkConstant);
+		const configSubstore = await getConfigSubstore(this._db, configRegistrySubstore.registry);
 		const governanceModuleAssets = await getGovernanceModuleEntry(
 			boostedAccountSubstore,
 			castedVoteSubstore,
@@ -244,7 +208,8 @@ export class CreateAsset {
 			proposalSubstore,
 			queueSubstore,
 			voteScoreSubstore,
-			governanceConfigSubstore,
+			configRegistrySubstore,
+			configSubstore,
 		);
 
 		// create nft module assets
@@ -256,8 +221,6 @@ export class CreateAsset {
 			[
 				dexModuleAssets,
 				tokenFactoryModuleAssets,
-				feeConversionModuleAssets,
-				liquidPosModuleAssets,
 				governanceModuleAssets,
 				nftModuleSubstore,
 				authModuleAssets,

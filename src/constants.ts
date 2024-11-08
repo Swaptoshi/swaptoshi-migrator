@@ -249,6 +249,10 @@ export const DB_PREFIX_GOVERNANCE_PROPOSAL_VOTER_STORE = Buffer.concat([
 	computeStorePrefix(MODULE_NAME_GOVERNANCE),
 	computeSubstorePrefix(8),
 ]);
+export const DB_PREFIX_GOVERNANCE_CONFIG_REGISTRY = Buffer.concat([
+	computeStorePrefix(MODULE_NAME_GOVERNANCE),
+	computeSubstorePrefix(9),
+]);
 
 // governable config store
 export const DB_PREFIX_FEE_CONVERSION_GOVERNABLE_CONFIG_STORE = Buffer.concat([
@@ -315,6 +319,7 @@ export const NETWORK_CONSTANT: { [key: string]: NetworkConfigLocal } = {
 		tokenID: TOKEN_ID_SWX.MAINNET,
 		prevSnapshotBlockHeight: HEIGHT_PREVIOUS_SNAPSHOT_BLOCK.MAINNET,
 		updatedConfigSubstore: [],
+		additionalConfigRegistry: [],
 		additionalAccounts: [],
 	},
 	'01555555': {
@@ -400,6 +405,16 @@ export const NETWORK_CONSTANT: { [key: string]: NetworkConfigLocal } = {
 				}),
 			},
 		],
+		additionalConfigRegistry: [
+			{
+				module: 'feeConversion',
+				index: 0,
+			},
+			{ module: 'liquidPos', index: 0 },
+			{ module: 'dex', index: 8 },
+			{ module: 'tokenFactory', index: 5 },
+			{ module: 'governance', index: 0 },
+		],
 		additionalAccounts: [],
 	},
 	'04555555': {
@@ -407,6 +422,7 @@ export const NETWORK_CONSTANT: { [key: string]: NetworkConfigLocal } = {
 		tokenID: TOKEN_ID_SWX.DEVNET,
 		prevSnapshotBlockHeight: HEIGHT_PREVIOUS_SNAPSHOT_BLOCK.DEVNET,
 		updatedConfigSubstore: [],
+		additionalConfigRegistry: [],
 		additionalAccounts: [],
 	},
 };

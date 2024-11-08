@@ -12,6 +12,10 @@
  * Removal or modification of this copyright notice is prohibited.
  */
 import cli from 'cli-ux';
+import {
+	computeStorePrefix,
+	computeSubstorePrefix,
+} from 'klayr-framework/dist-node/modules/base_store';
 import { getAPIClient } from '../client';
 import { NETWORK_CONSTANT } from '../constants';
 
@@ -26,6 +30,9 @@ interface ObserveParams {
 	readonly delay: number;
 	readonly isFinal: boolean;
 }
+
+export const getPrefix = (moduleName: string, storeIndex: number) =>
+	Buffer.concat([computeStorePrefix(moduleName), computeSubstorePrefix(storeIndex)]);
 
 export const getTokenIDSwx = () => tokenIDSwx;
 

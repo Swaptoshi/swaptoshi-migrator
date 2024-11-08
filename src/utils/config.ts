@@ -106,19 +106,22 @@ export const createBackup = async (config: ApplicationConfig): Promise<void> => 
 	writeFileSync(resolve(`${backupPath}/config.json`), JSON.stringify(config, null, '\t'));
 };
 
-// TODO: update this
 export const updateConfigSubstore = (
 	assets: GenesisAssetEntry[],
 	networkConstant: NetworkConfigLocal,
 ) => {
 	const assetsClone = utils.objects.cloneDeep(assets);
-	for (const configToUpdate of networkConstant.updatedConfigSubstore) {
-		const index = assetsClone.findIndex(t => t.module === configToUpdate.module);
-		if (index !== -1 && Object.keys(assetsClone[index].data).includes('configSubstore')) {
-			(assetsClone[index].data
-				.configSubstore as GovernanceGenesisStoreEntry['configSubstore']).data = configToUpdate.data.toString(
-				'hex',
+	const governanceIndex = assetsClone.findIndex(t => t.module === 'governance');
+	if (governanceIndex !== -1) {
+		const governanceAssets = (assetsClone[governanceIndex]
+			.data as unknown) as GovernanceGenesisStoreEntry;
+		for (const configToUpdate of networkConstant.updatedConfigSubstore) {
+			const index = governanceAssets.configSubstore.findIndex(
+				t => t.module === configToUpdate.module,
 			);
+			if (index !== -1) {
+				governanceAssets.configSubstore[index].data = configToUpdate.data.toString('hex');
+			}
 		}
 	}
 	return assetsClone;

@@ -6,7 +6,6 @@ import {
 	nextAvailableTokenIdStoreSchema,
 	vestingUnlockStoreSchema,
 } from './stores';
-import { governableConfigSchema } from '../governable_config';
 
 const genesisSchemaBuilder = (
 	schema: { $id: string; type: string; required: string[]; properties: Record<string, object> },
@@ -47,7 +46,6 @@ export const tokenFactoryGenesisStoreSchema = {
 		'icoSubstore',
 		'nextAvailableTokenIdSubstore',
 		'vestingUnlockSubstore',
-		'configSubstore',
 	],
 	properties: {
 		airdropSubstore: {
@@ -80,10 +78,6 @@ export const tokenFactoryGenesisStoreSchema = {
 			items: genesisSchemaBuilder(vestingUnlockStoreSchema, [
 				{ key: 'height', dataType: 'uint32' },
 			]),
-		},
-		configSubstore: {
-			fieldNumber: 6,
-			...genesisSchemaBuilder(governableConfigSchema, []),
 		},
 	},
 };

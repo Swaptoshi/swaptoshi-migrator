@@ -21,7 +21,6 @@ import {
 	FactoryGenesisSubstoreEntry,
 	FactoryStoreData,
 	GenesisAssetEntry,
-	GovernableConfigSubstoreEntry,
 	ICOGenesisSubstoreEntry,
 	ICOStoreData,
 	NextAvailableTokenIdGenesisSubstoreEntry,
@@ -159,7 +158,6 @@ export const getTokenFactoryModuleEntry = async (
 	icoSubstore: ICOGenesisSubstoreEntry[],
 	nextAvailableTokenIdSubstore: NextAvailableTokenIdGenesisSubstoreEntry,
 	vestingUnlockSubstore: VestingUnlockGenesisSubstoreEntry[],
-	configSubstore: GovernableConfigSubstoreEntry,
 ): Promise<GenesisAssetEntry> => {
 	const genesisObj: TokenFactoryGenesisStoreEntry = {
 		airdropSubstore,
@@ -167,7 +165,6 @@ export const getTokenFactoryModuleEntry = async (
 		icoSubstore,
 		nextAvailableTokenIdSubstore,
 		vestingUnlockSubstore,
-		configSubstore,
 	};
 	return {
 		module: MODULE_NAME_TOKEN_FACTORY,

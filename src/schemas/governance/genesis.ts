@@ -3,6 +3,7 @@ import * as utils from '@klayr/utils';
 import {
 	boostedAccountStoreSchema,
 	castedVoteStoreSchema,
+	configRegistryStoreSchema,
 	delegatedVoteStoreSchema,
 	nextAvailableProposalIdStoreSchema,
 	proposalQueueStoreSchema,
@@ -10,7 +11,6 @@ import {
 	proposalVoterStoreSchema,
 	voteScoreStoreSchema,
 } from './stores';
-import { governableConfigSchema } from '../governable_config';
 
 const genesisSchemaBuilder = (
 	schema: { $id: string; type: string; required: string[]; properties: Record<string, object> },
@@ -54,6 +54,7 @@ export const governanceGenesisStoreSchema = {
 		'proposalSubstore',
 		'queueSubstore',
 		'voteScoreSubstore',
+		'configRegistrySubstore',
 		'configSubstore',
 	],
 	properties: {
@@ -108,9 +109,27 @@ export const governanceGenesisStoreSchema = {
 				{ key: 'address', dataType: 'bytes', format: 'klayr32' },
 			]),
 		},
-		configSubstore: {
+		configRegistrySubstore: {
 			fieldNumber: 9,
-			...genesisSchemaBuilder(governableConfigSchema, []),
+			...genesisSchemaBuilder(configRegistryStoreSchema, []),
+		},
+		configSubstore: {
+			fieldNumber: 10,
+			type: 'array',
+			items: {
+				type: 'object',
+				required: ['module', 'data'],
+				properties: {
+					module: {
+						fieldNumber: 1,
+						dataType: 'string',
+					},
+					data: {
+						fieldNumber: 2,
+						dataType: 'bytes',
+					},
+				},
+			},
 		},
 	},
 };

@@ -6,12 +6,14 @@ import {
 	BoostedAccountStoreData,
 	CastedVoteGenesisSubstoreEntry,
 	CastedVoteStoreData,
+	ConfigRegistryStoreData,
 	DelegatedVoteGenesisSubstoreEntry,
 	DelegatedVoteStoreData,
 	GenesisAssetEntry,
 	GovernableConfigStoreData,
 	GovernableConfigSubstoreEntry,
 	GovernanceGenesisStoreEntry,
+	NetworkConfigLocal,
 	NextAvailableProposalIdStoreData,
 	ProposalGenesisSubstoreEntry,
 	ProposalQueueGenesisSubstoreEntry,
@@ -25,6 +27,7 @@ import {
 import {
 	boostedAccountStoreSchema,
 	castedVoteStoreSchema,
+	configRegistryStoreSchema,
 	delegatedVoteStoreSchema,
 	governableConfigSchema,
 	governanceGenesisStoreSchema,
@@ -37,6 +40,7 @@ import {
 import {
 	DB_PREFIX_GOVERNANCE_BOOSTED_ACCOUNT_STORE,
 	DB_PREFIX_GOVERNANCE_CASTED_VOTE_STORE,
+	DB_PREFIX_GOVERNANCE_CONFIG_REGISTRY,
 	DB_PREFIX_GOVERNANCE_DELEGATED_VOTE_STORE,
 	DB_PREFIX_GOVERNANCE_NEXT_AVAILABLE_PROPOSAL_ID_STORE,
 	DB_PREFIX_GOVERNANCE_PROPOSAL_STORE,
@@ -45,12 +49,14 @@ import {
 	DB_PREFIX_GOVERNANCE_VOTE_SCORE_STORE,
 	MODULE_NAME_GOVERNANCE,
 } from '../constants';
+import { getPrefix } from '../utils';
 
-export const getGovernableConfigSubstore = async (
+const getGovernableConfigSubstoreItem = async (
 	db: StateDB,
-	prefix: Buffer,
-): Promise<GovernableConfigSubstoreEntry> => {
-	const configSubstore = getStateStore(db, prefix);
+	moduleName: string,
+	storeIndex: number,
+): Promise<GovernableConfigSubstoreEntry | undefined> => {
+	const configSubstore = getStateStore(db, getPrefix(moduleName, storeIndex));
 	try {
 		const config = await configSubstore.getWithSchema<GovernableConfigStoreData>(
 			Buffer.alloc(0),
@@ -58,11 +64,29 @@ export const getGovernableConfigSubstore = async (
 		);
 
 		return {
+			module: moduleName,
 			data: config.data.toString('hex'),
 		};
 	} catch {
-		return { data: '' };
+		return undefined;
 	}
+};
+
+export const getConfigSubstore = async (
+	db: StateDB,
+	registries: ConfigRegistryStoreData['registry'],
+): Promise<GovernableConfigSubstoreEntry[]> => {
+	const configSubstore: GovernableConfigSubstoreEntry[] = [];
+	for (const registry of registries) {
+		const item = await getGovernableConfigSubstoreItem(db, registry.module, registry.index);
+		if (!item) {
+			throw new Error(
+				`undefined on-chain module config: ${registry.module} at index ${registry.index}`,
+			);
+		}
+		configSubstore.push(item);
+	}
+	return configSubstore;
 };
 
 export const getBoostedAccountSubstore = async (
@@ -248,6 +272,40 @@ export const getVoteScoreSubstore = async (
 		}));
 };
 
+export const getConfigRegistrySubstore = async (
+	db: StateDB,
+	networkConstant: NetworkConfigLocal,
+): Promise<ConfigRegistryStoreData> => {
+	const configRegistryStore = getStateStore(db, DB_PREFIX_GOVERNANCE_CONFIG_REGISTRY);
+
+	let configRegistry;
+
+	try {
+		configRegistry = await configRegistryStore.getWithSchema<ConfigRegistryStoreData>(
+			Buffer.alloc(0),
+			configRegistryStoreSchema,
+		);
+	} catch {
+		configRegistry = {
+			registry: [],
+		};
+	}
+
+	if (networkConstant.additionalConfigRegistry.length > 0) {
+		for (const registry of networkConstant.additionalConfigRegistry) {
+			configRegistry.registry.push(registry);
+		}
+	}
+
+	configRegistry.registry.sort((a, b) => {
+		if (a.module > b.module) return -1;
+		if (b.module > a.module) return 1;
+		return 0;
+	});
+
+	return configRegistry;
+};
+
 export const getGovernanceModuleEntry = async (
 	boostedAccountSubstore: BoostedAccountGenesisSubstoreEntry[],
 	castedVoteSubstore: CastedVoteGenesisSubstoreEntry[],
@@ -257,7 +315,8 @@ export const getGovernanceModuleEntry = async (
 	proposalSubstore: ProposalGenesisSubstoreEntry[],
 	queueSubstore: ProposalQueueGenesisSubstoreEntry[],
 	voteScoreSubstore: VoteScoreGenesisSubstoreEntry[],
-	configSubstore: GovernableConfigSubstoreEntry,
+	configRegistrySubstore: ConfigRegistryStoreData,
+	configSubstore: GovernableConfigSubstoreEntry[],
 ): Promise<GenesisAssetEntry> => {
 	const genesisObj: GovernanceGenesisStoreEntry = {
 		boostedAccountSubstore,
@@ -268,6 +327,7 @@ export const getGovernanceModuleEntry = async (
 		proposalSubstore,
 		queueSubstore,
 		voteScoreSubstore,
+		configRegistrySubstore,
 		configSubstore,
 	};
 	return {

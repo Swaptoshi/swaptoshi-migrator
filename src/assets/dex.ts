@@ -16,7 +16,6 @@ import {
 	DEXPoolData,
 	DEXPoolSubstoreEntry,
 	GenesisAssetEntry,
-	GovernableConfigSubstoreEntry,
 	ObservationSubstoreEntry,
 	PositionInfoSubstoreEntry,
 	PositionManager,
@@ -259,7 +258,6 @@ export const getDexModuleEntry = async (
 	tickBitmapSubstore: TickBitmapSubstoreEntry[],
 	tickInfoSubstore: TickInfoSubstoreEntry[],
 	tokenSymbolSubstore: TokenSymbolSubstoreEntry[],
-	configSubstore: GovernableConfigSubstoreEntry,
 ): Promise<GenesisAssetEntry> => {
 	const genesisObj: DexGenesisStoreEntry = {
 		observationSubstore,
@@ -270,7 +268,6 @@ export const getDexModuleEntry = async (
 		tickBitmapSubstore,
 		tickInfoSubstore,
 		tokenSymbolSubstore,
-		configSubstore,
 	};
 	return {
 		module: MODULE_NAME_DEX,

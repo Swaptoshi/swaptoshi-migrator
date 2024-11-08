@@ -1,5 +1,3 @@
-import { GovernableConfigSubstoreEntry } from './types';
-
 export interface AirdropStoreData {
 	recipients: {
 		address: Buffer;
@@ -77,5 +75,4 @@ export interface TokenFactoryGenesisStoreEntry {
 	icoSubstore: ICOGenesisSubstoreEntry[];
 	nextAvailableTokenIdSubstore: NextAvailableTokenIdGenesisSubstoreEntry;
 	vestingUnlockSubstore: VestingUnlockGenesisSubstoreEntry[];
-	configSubstore: GovernableConfigSubstoreEntry;
 }

@@ -259,6 +259,7 @@ export interface NetworkConfigLocal {
 	tokenID: string;
 	prevSnapshotBlockHeight: number;
 	updatedConfigSubstore: { module: string; data: Buffer }[];
+	additionalConfigRegistry: { module: string; index: number }[];
 	additionalAccounts: { address: Buffer; balance: bigint }[];
 }
 
@@ -290,5 +291,6 @@ export interface GovernableConfigStoreData {
 }
 
 export interface GovernableConfigSubstoreEntry {
+	module: string;
 	data: string;
 }

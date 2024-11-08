@@ -9,7 +9,15 @@ export interface GovernanceGenesisStoreEntry {
 	proposalSubstore: ProposalGenesisSubstoreEntry[];
 	queueSubstore: ProposalQueueGenesisSubstoreEntry[];
 	voteScoreSubstore: VoteScoreGenesisSubstoreEntry[];
-	configSubstore: GovernableConfigSubstoreEntry;
+	configRegistrySubstore: ConfigRegistryStoreData;
+	configSubstore: GovernableConfigSubstoreEntry[];
+}
+
+export interface ConfigRegistryStoreData {
+	registry: {
+		module: string;
+		index: number;
+	}[];
 }
 
 export interface BoostedAccountStoreData {
