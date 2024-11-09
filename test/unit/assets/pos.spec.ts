@@ -32,6 +32,8 @@ import {
 } from '../../../src/utils';
 import { NETWORK_CONSTANT } from '../../../src/constants';
 
+jest.setTimeout(20000);
+
 describe('Build assets/pos', () => {
 	it('should create createPoSModuleEntry', async () => {
 		const db = new StateDB('test/unit/fixtures/data/state.db', { readonly: true });

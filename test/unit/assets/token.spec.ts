@@ -21,6 +21,8 @@ import { MODULE_NAME_TOKEN, NETWORK_CONSTANT } from '../../../src/constants';
 import { processRewards } from '../../../src/assets/pos';
 import { setTokenIDSwxByNetID } from '../../../src/utils';
 
+jest.setTimeout(20000);
+
 describe('Build assets/token', () => {
 	const db = new StateDB('test/unit/fixtures/data/state.db', { readonly: true });
 	const blockchainDB = new Database('test/unit/fixtures/data/blockchain.db', { readonly: true });

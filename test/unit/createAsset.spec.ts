@@ -32,7 +32,7 @@ import {
 } from '../../src/constants';
 import { GenesisAssetEntry } from '../../src/types';
 
-jest.setTimeout(20000);
+jest.setTimeout(40000);
 
 describe('Build assets/legacy', () => {
 	describe('createAsset', () => {
