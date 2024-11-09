@@ -86,6 +86,11 @@ export const getConfigSubstore = async (
 		}
 		configSubstore.push(item);
 	}
+	configSubstore.sort((a, b) => {
+		if (a.module > b.module) return -1;
+		if (b.module > a.module) return 1;
+		return 0;
+	});
 	return configSubstore;
 };
 
