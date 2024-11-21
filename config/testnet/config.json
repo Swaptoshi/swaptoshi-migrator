@@ -13,7 +13,7 @@
 		"host": "0.0.0.0"
 	},
 	"network": {
-		"version": "1.0",
+		"version": "2.0",
 		"seedPeers": [
 			{
 				"ip": "testnet-seed-01.swaptoshi.com",
@@ -62,6 +62,12 @@
 			"dangerouslySkipBalanceVerification": true,
 			"dangerouslySkipAvailableFeeInitialization": true
 		},
+		"dex": {
+			"feeProtocol": 170
+		},
+		"feeConversion": {
+			"conversionPath": ["01555555000000000000640155555500000001"]
+		},
 		"pos": {
 			"minWeightStandby": "1000000000",
 			"failSafeInactiveWindow": 403200,
@@ -70,7 +76,9 @@
 			"lockingPeriodStaking": 86400,
 			"lockingPeriodSelfStaking": 806400,
 			"maxBFTWeightCap": 1000,
-			"useInvalidBLSKey": false
+			"useInvalidBLSKey": false,
+			"numberActiveValidators": 21,
+			"numberStandbyValidators": 2
 		},
 		"dynamicReward": {
 			"offset": 201559,

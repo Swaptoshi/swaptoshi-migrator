@@ -33,7 +33,7 @@ import {
 	DEFAULT_VERSION,
 	MAX_BFT_WEIGHT_CAP,
 	NETWORK_CONSTANT,
-	NUMBER_ACTIVE_VALIDATORS,
+	NUMBER_ACTIVE_VALIDATORS_AFTER,
 	NUMBER_STANDBY_VALIDATORS,
 	POS_INIT_ROUNDS,
 } from '../constants';
@@ -241,8 +241,8 @@ export const migrateUserConfig = async (
 	newConfig.genesis.minimumCertifyHeight =
 		snapshotHeight +
 		1 +
-		(POS_INIT_ROUNDS + NUMBER_ACTIVE_VALIDATORS - 1) *
-			(NUMBER_ACTIVE_VALIDATORS + NUMBER_STANDBY_VALIDATORS);
+		(POS_INIT_ROUNDS + NUMBER_ACTIVE_VALIDATORS_AFTER - 1) *
+			(NUMBER_ACTIVE_VALIDATORS_AFTER + NUMBER_STANDBY_VALIDATORS);
 	cli.action.stop();
 
 	// Assign transaction pool config properties

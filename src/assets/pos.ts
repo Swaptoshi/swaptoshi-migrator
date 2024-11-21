@@ -54,7 +54,7 @@ import {
 	DB_PREFIX_POS_STAKER_STORE,
 	DB_PREFIX_VALIDATORS_KEYS_STORE,
 	DB_PREFIX_POS_SNAPSHOT_STORE,
-	NUMBER_ACTIVE_VALIDATORS,
+	NUMBER_ACTIVE_VALIDATORS_AFTER,
 } from '../constants';
 import { getTokenAccounts, sortUsersSubstore } from './token';
 import { resolveBaseGenesisAssetsDefaultPath } from '../utils';
@@ -333,7 +333,7 @@ export const createGenesisDataObj = async (
 	});
 
 	const sortedInitValidators = initValidators
-		.slice(0, NUMBER_ACTIVE_VALIDATORS)
+		.slice(0, NUMBER_ACTIVE_VALIDATORS_AFTER)
 		.sort((a, b) => a.compare(b));
 
 	return {
