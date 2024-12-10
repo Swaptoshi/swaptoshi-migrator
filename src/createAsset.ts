@@ -13,6 +13,7 @@
  * Removal or modification of this copyright notice is prohibited.
  */
 import { Database, StateDB } from '@liskhq/lisk-db';
+import { Snapshot } from 'swaptoshi-sdk';
 import { getKlayr32AddressFromAddress } from '@klayr/cryptography/dist-node/address';
 import {
 	GenesisAssetEntry,
@@ -34,39 +35,6 @@ import {
 	processRewards,
 } from './assets/pos';
 import { getPrevSnapshotBlockHeight, updateConfigSubstore } from './utils';
-import {
-	getDexModuleEntry,
-	getObservationSubstore,
-	getPoolSubstore,
-	getPositionInfoSubstore,
-	getPositionManagerSubstore,
-	getSupportedTokenSubstore,
-	getTickBitmapSubstore,
-	getTickInfoSubstore,
-	getTokenSymbolSubstore,
-} from './assets/dex';
-import {
-	getAirdropSubstore,
-	getFactorySubstore,
-	getICOSubstore,
-	getNextAvailableTokenIdSubstore,
-	getTokenFactoryModuleEntry,
-	getVestingUnlockSubstore,
-} from './assets/tokenFactory';
-import {
-	getBoostedAccountSubstore,
-	getCastedVoteSubstore,
-	getConfigRegistrySubstore,
-	getConfigSubstore,
-	getDelegatedVoteSubstore,
-	getGovernanceModuleEntry,
-	getNextAvailableProposalIdSubstore,
-	getProposalQueueSubstore,
-	getProposalSubstore,
-	getProposalVoterSubstore,
-	getVoteScoreSubstore,
-} from './assets/governance';
-import { getNFTModuleEntry, getNFTSubstore, getSupportedNFTsSubstore } from './assets/nft';
 
 const AMOUNT_ZERO = BigInt('0');
 
@@ -155,67 +123,21 @@ export class CreateAsset {
 		const interoperabilityModuleAssets = await getInteropModuleEntry(this._db);
 
 		// Create dex module assets
-		const observationSubstore = await getObservationSubstore(this._db);
-		const poolSubstore = await getPoolSubstore(this._db);
-		const positionInfoSubstore = await getPositionInfoSubstore(this._db);
-		const positionManagerSubstore = await getPositionManagerSubstore(this._db);
-		const supportedTokenSubstore = await getSupportedTokenSubstore(this._db);
-		const tickBitmapSubstore = await getTickBitmapSubstore(this._db);
-		const tickInfoSubstore = await getTickInfoSubstore(this._db);
-		const tokenSymbolSubstore = await getTokenSymbolSubstore(this._db);
-		const dexModuleAssets = await getDexModuleEntry(
-			observationSubstore,
-			poolSubstore,
-			positionInfoSubstore,
-			positionManagerSubstore,
-			supportedTokenSubstore,
-			tickBitmapSubstore,
-			tickInfoSubstore,
-			tokenSymbolSubstore,
-		);
+		const dexModuleAssets = await Snapshot.DEX.createDexModuleAsset(this._db);
 
 		// create tokenFactory module assets
-		const airdropSubstore = await getAirdropSubstore(this._db);
-		const factorySubstore = await getFactorySubstore(this._db);
-		const icoSubstore = await getICOSubstore(this._db);
-		const nextAvailableTokenIdSubstore = await getNextAvailableTokenIdSubstore(this._db);
-		const vestingUnlockSubstore = await getVestingUnlockSubstore(this._db);
-		const tokenFactoryModuleAssets = await getTokenFactoryModuleEntry(
-			airdropSubstore,
-			factorySubstore,
-			icoSubstore,
-			nextAvailableTokenIdSubstore,
-			vestingUnlockSubstore,
+		const tokenFactoryModuleAssets = await Snapshot.TokenFactory.createTokenFactoryModuleAsset(
+			this._db,
 		);
 
 		// create governance module assets
-		const boostedAccountSubstore = await getBoostedAccountSubstore(this._db);
-		const castedVoteSubstore = await getCastedVoteSubstore(this._db);
-		const delegatedVoteSubstore = await getDelegatedVoteSubstore(this._db);
-		const nextAvailableProposalIdSubstore = await getNextAvailableProposalIdSubstore(this._db);
-		const proposalVoterSubstore = await getProposalVoterSubstore(this._db);
-		const proposalSubstore = await getProposalSubstore(this._db);
-		const queueSubstore = await getProposalQueueSubstore(this._db);
-		const voteScoreSubstore = await getVoteScoreSubstore(this._db);
-		const configRegistrySubstore = await getConfigRegistrySubstore(this._db, networkConstant);
-		const configSubstore = await getConfigSubstore(this._db, configRegistrySubstore.registry);
-		const governanceModuleAssets = await getGovernanceModuleEntry(
-			boostedAccountSubstore,
-			castedVoteSubstore,
-			delegatedVoteSubstore,
-			nextAvailableProposalIdSubstore,
-			proposalVoterSubstore,
-			proposalSubstore,
-			queueSubstore,
-			voteScoreSubstore,
-			configRegistrySubstore,
-			configSubstore,
+		const governanceModuleAssets = await Snapshot.Governance.createGovernanceModuleAsset(
+			this._db,
+			networkConstant.additionalConfigRegistry,
 		);
 
 		// create nft module assets
-		const nftSubstore = await getNFTSubstore(this._db);
-		const supportedNFTsSubstore = await getSupportedNFTsSubstore(this._db);
-		const nftModuleSubstore = await getNFTModuleEntry(nftSubstore, supportedNFTsSubstore);
+		const nftModuleSubstore = await Snapshot.NFT.createNFTModuleAsset(this._db);
 
 		return updateConfigSubstore(
 			[
